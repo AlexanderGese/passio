@@ -121,6 +121,17 @@ export const goalReviews = sqliteTable("goal_reviews", {
   nextActions: text("next_actions"), // JSON array
 });
 
+// === Workflows (procedural macros) ===
+export const workflows = sqliteTable("workflows", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+  trigger: text("trigger"),
+  steps: text("steps").notNull(),
+  createdAt: text("created_at").notNull().default(now),
+  lastUsed: text("last_used"),
+  useCount: integer("use_count").notNull().default(0),
+});
+
 // === Local file index ===
 export const files = sqliteTable("files", {
   id: integer("id").primaryKey({ autoIncrement: true }),

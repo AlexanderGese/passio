@@ -140,6 +140,11 @@ export const RpcMethods = {
   // Text transforms
   REWRITE: "passio.rewrite",
   TRANSLATE: "passio.translate",
+  // Macros
+  MACRO_SAVE: "passio.macro.save",
+  MACRO_LIST: "passio.macro.list",
+  MACRO_DELETE: "passio.macro.delete",
+  MACRO_RUN: "passio.macro.run",
   // Calendar
   CAL_UPCOMING: "passio.calendar.upcoming",
   CAL_SET_SOURCES: "passio.calendar.setSources",

@@ -79,6 +79,16 @@ const DDL = [
      value TEXT NOT NULL
    )`,
 
+  `CREATE TABLE IF NOT EXISTS workflows (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     name TEXT NOT NULL UNIQUE,
+     trigger TEXT,
+     steps TEXT NOT NULL,
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     last_used TEXT,
+     use_count INTEGER NOT NULL DEFAULT 0
+   )`,
+
   // === Goals ===
   `CREATE TABLE IF NOT EXISTS goals (
      id INTEGER PRIMARY KEY AUTOINCREMENT,

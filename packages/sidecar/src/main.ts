@@ -38,6 +38,7 @@ import {
   timeBlockCreate,
 } from "./tools/analytics.js";
 import { setCalendarSources, upcomingEvents } from "./tools/calendar.js";
+import { macroDelete, macroList, macroRun, macroSave } from "./tools/macros.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
 import { mailInbox, mailSearch, mailSend, mailUnread } from "./tools/mail.js";
 import { latestItems, setFeeds } from "./tools/rss.js";
@@ -224,6 +225,18 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   bus.resolveGate(id, allowed);
   return { ok: true };
 });
+
+// --- Workflow macros ---
+bus.on(RpcMethods.MACRO_SAVE, async (p: unknown) =>
+  macroSave(db, p as Parameters<typeof macroSave>[1]),
+);
+bus.on(RpcMethods.MACRO_LIST, async () => macroList(db));
+bus.on(RpcMethods.MACRO_DELETE, async (p: unknown) =>
+  macroDelete(db, p as Parameters<typeof macroDelete>[1]),
+);
+bus.on(RpcMethods.MACRO_RUN, async (p: unknown) =>
+  macroRun(db, { bridge, bus }, p as Parameters<typeof macroRun>[2]),
+);
 
 // --- Calendar / RSS / Weather ---
 bus.on(RpcMethods.CAL_UPCOMING, async (p: unknown) =>
