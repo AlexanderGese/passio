@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Passio — Pair extension</title>
+    <style>
+      body {
+        max-width: 540px;
+        margin: 40px auto;
+        padding: 0 24px;
+        background: #1a1422;
+        color: #fff4e0;
+        font: 14px/1.55 "JetBrains Mono", system-ui, sans-serif;
+      }
+      h1 { color: #ffb84d; font-size: 18px; }
+      label { display: block; margin-top: 14px; color: #bbb; }
+      input {
+        width: 100%;
+        padding: 8px 10px;
+        font: inherit;
+        background: #0f0a17;
+        color: #fff;
+        border: 1px solid #3a2b44;
+        border-radius: 6px;
+      }
+      button {
+        margin-top: 14px;
+        padding: 8px 14px;
+        font: inherit;
+        background: #ffb84d;
+        color: #1a1422;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .hint {
+        margin-top: 20px;
+        padding: 12px;
+        background: rgba(139, 63, 160, 0.15);
+        border-radius: 8px;
+        color: #ddd;
+        font-size: 12px;
+      }
+      code {
+        background: #0f0a17;
+        padding: 1px 4px;
+        border-radius: 4px;
+      }
+      .status {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #34d399;
+      }
+      .err {
+        color: #f87171;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🍇 Pair Passio with Chrome</h1>
+    <div class="hint">
+      Passio writes a pairing token to <code>~/.config/passio/extension-pairing.json</code>
+      whenever its sidecar starts. Copy <code>port</code> and <code>token</code> from that
+      file into the fields below. The token rotates on every Passio restart.
+    </div>
+    <label>
+      Port
+      <input id="port" type="number" placeholder="e.g. 43369" />
+    </label>
+    <label>
+      Token
+      <input id="token" type="text" placeholder="hex token" />
+    </label>
+    <button id="save">Save & connect</button>
+    <p class="status" id="status"></p>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>

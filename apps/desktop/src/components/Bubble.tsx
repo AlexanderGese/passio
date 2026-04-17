@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { onBubbleState, onHotkey, onSidecarLog, pingSidecar } from "../ipc";
 import { PassioAvatar } from "../avatar/PassioAvatar";
 import { usePassioStore } from "../store";
+import { BrowserPanel } from "./BrowserPanel";
 import { ChatPanel } from "./ChatPanel";
 import { GoalsPanel } from "./GoalsPanel";
 
@@ -62,7 +63,9 @@ export function Bubble() {
         <div className="no-drag pointer-events-auto mb-2 flex h-[460px] w-[320px] flex-col rounded-2xl border border-passio-skinLight/30 bg-neutral-900/95 p-3 text-neutral-100 shadow-2xl backdrop-blur">
           <Tabs />
           <div className="mt-2 min-h-0 flex-1">
-            {tab === "chat" ? <ChatPanel /> : <GoalsPanel />}
+            {tab === "chat" && <ChatPanel />}
+            {tab === "goals" && <GoalsPanel />}
+            {tab === "browser" && <BrowserPanel />}
           </div>
         </div>
       )}
@@ -83,7 +86,7 @@ function Tabs() {
   const { tab, setTab } = usePassioStore();
   return (
     <div className="flex gap-1 border-b border-white/5 pb-1 text-xs">
-      {(["chat", "goals"] as const).map((t) => (
+      {(["chat", "goals", "browser"] as const).map((t) => (
         <button
           key={t}
           type="button"

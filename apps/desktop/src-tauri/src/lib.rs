@@ -74,6 +74,8 @@ pub fn run() {
             commands::goal_list,
             commands::goal_create,
             commands::milestone_done,
+            commands::bridge_status,
+            commands::summarize_page,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

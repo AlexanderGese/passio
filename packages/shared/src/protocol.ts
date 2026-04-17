@@ -109,6 +109,11 @@ export const RpcMethods = {
   MILESTONE_ADD: "passio.milestone.add",
   MILESTONE_DONE: "passio.milestone.done",
   MILESTONE_RESCHEDULE: "passio.milestone.reschedule",
+  // Browser bridge
+  BRIDGE_STATUS: "passio.bridge.status",
+  BROWSER_GET_CURRENT_TAB: "passio.browser.getCurrentTab",
+  BROWSER_SUMMARIZE_PAGE: "passio.browser.summarizePage",
+
   // Obsidian vault
   VAULT_SET_ROOT: "passio.vault.setRoot",
   VAULT_GET_ROOT: "passio.vault.getRoot",

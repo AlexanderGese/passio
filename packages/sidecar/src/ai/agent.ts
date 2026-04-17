@@ -2,6 +2,9 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { Db } from "../db/client.js";
+import type { BridgeServer } from "../bridge/server.js";
+import * as browser from "../tools/browser.js";
+import { explainSelection, savePage, summarizePage } from "../tools/browser_compound.js";
 import { conversations, messages } from "../db/schema.js";
 import { retrieve } from "../context/retrieve.js";
 import {
@@ -72,6 +75,7 @@ export async function chat(
   db: Db,
   emit: Emitter,
   input: { prompt: string; conversationId?: number },
+  bridge?: BridgeServer,
 ): Promise<{ conversationId: number; text: string }> {
   // Ensure a conversation id
   let convId = input.conversationId;
@@ -98,7 +102,7 @@ export async function chat(
         .join("\n")
     : "Retrieved context: (none yet — this is a cold memory)";
 
-  const tools = buildTools(db);
+  const tools = buildTools(db, bridge);
   const result = await generateText({
     model: openai()(modelName()),
     system: `${SYSTEM_PROMPT}\n\n${contextBlock}`,
@@ -122,8 +126,10 @@ export async function chat(
   return { conversationId: convId, text: result.text };
 }
 
-function buildTools(db: Db) {
+function buildTools(db: Db, bridge?: BridgeServer) {
+  const browserTools = bridge ? buildBrowserTools(db, bridge) : {};
   return {
+    ...browserTools,
     memory_remember: tool({
       description:
         "Persist a lasting fact about the user (preference, identity, context, relationship, skill).",
@@ -332,6 +338,115 @@ function buildTools(db: Db) {
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       }),
       execute: async (args) => dailyNoteAppendRecap(db, args),
+    }),
+  };
+}
+
+function buildBrowserTools(db: Db, bridge: BridgeServer) {
+  const deps = { bridge, db };
+  return {
+    get_current_tab: tool({
+      description: "Read the user's currently focused browser tab (URL, title, tabId).",
+      inputSchema: z.object({}),
+      execute: async () => browser.getCurrentTab(deps),
+    }),
+    get_all_tabs: tool({
+      description: "List every open browser tab with URL, title, active flag.",
+      inputSchema: z.object({}),
+      execute: async () => browser.getAllTabs(deps),
+    }),
+    navigate: tool({
+      description: "Navigate a tab to a URL (active tab by default).",
+      inputSchema: z.object({ url: z.string().url(), tabId: z.number().int().optional() }),
+      execute: async (a) =>
+        browser.navigate(deps, a.tabId !== undefined ? { url: a.url, tabId: a.tabId } : { url: a.url }),
+    }),
+    new_tab: tool({
+      description: "Open a new tab, optionally pre-loaded with a URL.",
+      inputSchema: z.object({ url: z.string().url().optional() }),
+      execute: async (a) => browser.newTab(deps, a.url !== undefined ? { url: a.url } : {}),
+    }),
+    close_tab: tool({
+      description: "Close a tab (active tab by default).",
+      inputSchema: z.object({ tabId: z.number().int().optional() }),
+      execute: async (a) =>
+        browser.closeTab(deps, a.tabId !== undefined ? { tabId: a.tabId } : {}),
+    }),
+    click: tool({
+      description:
+        "Click a DOM element matching a CSS selector on the specified (or active) tab.",
+      inputSchema: z.object({
+        selector: z.string().min(1),
+        tabId: z.number().int().optional(),
+      }),
+      execute: async (a) =>
+        browser.click(
+          deps,
+          a.tabId !== undefined ? { selector: a.selector, tabId: a.tabId } : { selector: a.selector },
+        ),
+    }),
+    type: tool({
+      description: "Type text into a DOM input/textarea by selector.",
+      inputSchema: z.object({
+        selector: z.string().min(1),
+        text: z.string(),
+        tabId: z.number().int().optional(),
+      }),
+      execute: async (a) =>
+        browser.typeText(
+          deps,
+          a.tabId !== undefined
+            ? { selector: a.selector, text: a.text, tabId: a.tabId }
+            : { selector: a.selector, text: a.text },
+        ),
+    }),
+    scroll: tool({
+      description: "Scroll the page (direction: up/down/top/bottom, amount in px).",
+      inputSchema: z.object({
+        direction: z.enum(["up", "down", "top", "bottom"]),
+        amount: z.number().int().optional(),
+        tabId: z.number().int().optional(),
+      }),
+      execute: async (a) =>
+        browser.scroll(
+          deps,
+          a.tabId !== undefined
+            ? { direction: a.direction, tabId: a.tabId, ...(a.amount !== undefined ? { amount: a.amount } : {}) }
+            : { direction: a.direction, ...(a.amount !== undefined ? { amount: a.amount } : {}) },
+        ),
+    }),
+    extract_page: tool({
+      description: "Extract the current tab's readable article text (Readability).",
+      inputSchema: z.object({ tabId: z.number().int().optional() }),
+      execute: async (a) =>
+        browser.extract(deps, a.tabId !== undefined ? { tabId: a.tabId } : {}),
+    }),
+    screenshot_page: tool({
+      description: "Capture a PNG screenshot of the visible part of a tab.",
+      inputSchema: z.object({ tabId: z.number().int().optional() }),
+      execute: async (a) =>
+        browser.screenshot(deps, a.tabId !== undefined ? { tabId: a.tabId } : {}),
+    }),
+    summarize_page: tool({
+      description: "Extract + summarize the current tab. style=bullet|tldr|detailed.",
+      inputSchema: z.object({
+        style: z.enum(["bullet", "tldr", "detailed"]).default("bullet"),
+      }),
+      execute: async (a) => summarizePage({ db, bridge, style: a.style }),
+    }),
+    save_page: tool({
+      description: "Archive the current tab's Readability extract as a note.",
+      inputSchema: z.object({}),
+      execute: async () => savePage({ db, bridge }),
+    }),
+    explain_selection: tool({
+      description:
+        "Explain a highlighted text snippet from a page. Pass the selected text verbatim.",
+      inputSchema: z.object({
+        text: z.string().min(1),
+        url: z.string().url().optional(),
+      }),
+      execute: async (a) => explainSelection({ db, bridge, text: a.text, ...(a.url !== undefined ? { url: a.url } : {}) }),
     }),
   };
 }

@@ -7,7 +7,7 @@ export type ChatMessage = {
   ts: number;
 };
 
-export type PanelTab = "chat" | "goals";
+export type PanelTab = "chat" | "goals" | "browser";
 
 interface PassioState {
   bubble: BubbleState["state"];

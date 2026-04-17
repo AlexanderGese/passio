@@ -105,3 +105,23 @@ pub async fn milestone_done(
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn bridge_status(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar
+        .call("passio.bridge.status", json!({}))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn summarize_page(
+    sidecar: State<'_, Sidecar>,
+    style: Option<String>,
+) -> Result<Value, String> {
+    let params = json!({ "style": style.unwrap_or_else(|| "bullet".into()) });
+    sidecar
+        .call("passio.browser.summarizePage", params)
+        .await
+        .map_err(|e| e.to_string())
+}

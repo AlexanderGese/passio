@@ -13,6 +13,7 @@
  */
 import { RpcMethods, type PingResult } from "@passio/shared";
 import { chat } from "./ai/agent.js";
+import { startBridge } from "./bridge/server.js";
 import { openDb } from "./db/client.js";
 import { IdleWatchdog } from "./idle.js";
 import { RpcBus } from "./rpc.js";
@@ -50,7 +51,7 @@ import {
 } from "./vault/tools.js";
 import { watchVault } from "./vault/watcher.js";
 
-const SIDECAR_VERSION = "0.3.0";
+const SIDECAR_VERSION = "0.4.0";
 const DEFAULT_IDLE_MS = Number(process.env.PASSIO_IDLE_MS ?? 90_000);
 
 const bus = new RpcBus();
@@ -60,6 +61,13 @@ const startedAt = Date.now();
 // embeddings network call which is lazy.
 const db = openDb();
 
+// Start the local browser-extension bridge (WS on 127.0.0.1). Token is
+// rotated per sidecar launch and written to a chmod-600 file the user
+// pastes into the extension's options page.
+const bridge = startBridge((msg) =>
+  bus.notify(RpcMethods.NOTIFY_LOG, { level: "info", message: msg }),
+);
+
 const idle = new IdleWatchdog(DEFAULT_IDLE_MS, () => {
   bus.notify(RpcMethods.NOTIFY_LOG, { level: "info", message: "sidecar idle — shutting down" });
   shutdown("idle");
@@ -67,6 +75,7 @@ const idle = new IdleWatchdog(DEFAULT_IDLE_MS, () => {
 
 function shutdown(reason: string): void {
   idle.stop();
+  bridge.stop().catch(() => {});
   try {
     db.$raw.close();
   } catch {
@@ -104,7 +113,12 @@ bus.on(RpcMethods.CHAT, async (params: unknown) => {
     prompt: string;
     conversationId?: number;
   };
-  return chat(db, (m, p) => bus.notify(m, p), { prompt, conversationId });
+  return chat(
+    db,
+    (m, p) => bus.notify(m, p),
+    conversationId !== undefined ? { prompt, conversationId } : { prompt },
+    bridge,
+  );
 });
 
 // Direct memory / todo / note / intent RPCs (for the HUD to call without
@@ -211,6 +225,26 @@ bus.on(RpcMethods.VAULT_LIST_TAGS, async () => vaultListTags(db));
 bus.on(RpcMethods.VAULT_DAILY_RECAP, async (params: unknown) =>
   dailyNoteAppendRecap(db, params as Parameters<typeof dailyNoteAppendRecap>[1]),
 );
+
+// --- Browser bridge ---
+bus.on(RpcMethods.BRIDGE_STATUS, async () => ({
+  port: bridge.port,
+  token: bridge.token,
+  pairingFile: bridge.pairingFile,
+  connected: bridge.clients() > 0,
+  clients: bridge.clients(),
+}));
+
+bus.on(RpcMethods.BROWSER_GET_CURRENT_TAB, async () => {
+  const { getCurrentTab } = await import("./tools/browser.js");
+  return getCurrentTab({ bridge, db });
+});
+
+bus.on(RpcMethods.BROWSER_SUMMARIZE_PAGE, async (params: unknown) => {
+  const { summarizePage } = await import("./tools/browser_compound.js");
+  const opts = (params ?? {}) as { style?: "tldr" | "detailed" | "bullet" };
+  return summarizePage({ bridge, db, ...(opts.style ? { style: opts.style } : {}) });
+});
 
 // Vault watcher lifecycle — created if a root is already configured on boot.
 let vaultWatcherClose: Awaited<ReturnType<typeof watchVault>> | null = null;

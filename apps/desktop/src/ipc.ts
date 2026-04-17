@@ -97,6 +97,24 @@ export async function milestoneDone(id: number): Promise<{ ok: true; progress: n
   return invoke("milestone_done", { id });
 }
 
+export type BridgeStatus = {
+  port: number;
+  token: string;
+  pairingFile: string;
+  connected: boolean;
+  clients: number;
+};
+
+export async function bridgeStatus(): Promise<BridgeStatus> {
+  return invoke("bridge_status");
+}
+
+export async function summarizePage(
+  style: "bullet" | "tldr" | "detailed" = "bullet",
+): Promise<{ url: string; title: string; summary: string }> {
+  return invoke("summarize_page", { style });
+}
+
 export function onBubbleState(cb: (state: BubbleState) => void): Promise<UnlistenFn> {
   return listen<BubbleState>("passio://bubble-state", (e) => cb(e.payload));
 }
