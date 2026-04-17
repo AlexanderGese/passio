@@ -17,6 +17,25 @@ import { dailyRecap, morningBriefing } from "./ai/recap.js";
 import { scan } from "./ai/scan.js";
 import { rewrite, translate } from "./ai/transform.js";
 import { synthesize, transcribe } from "./ai/voice.js";
+import {
+  activityLog,
+  habitLog,
+  habitSummary,
+  habitUpsert,
+  journalAdd,
+  journalRecent,
+  timeBlockCreate,
+} from "./tools/analytics.js";
+import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
+import { fileSearch, indexFiles } from "./tools/files.js";
+import { edgeAdd, entityUpsert, graphQuery } from "./tools/graph.js";
+import {
+  gitCommitMsg,
+  gitPrDescription,
+  shellAllow,
+  shellAllowList,
+  shellRun,
+} from "./tools/shell.js";
 import { startBridge } from "./bridge/server.js";
 import { openDb } from "./db/client.js";
 import { IdleWatchdog } from "./idle.js";
@@ -72,7 +91,7 @@ import {
 } from "./vault/tools.js";
 import { watchVault } from "./vault/watcher.js";
 
-const SIDECAR_VERSION = "0.6.0";
+const SIDECAR_VERSION = "0.7.0";
 const DEFAULT_IDLE_MS = Number(process.env.PASSIO_IDLE_MS ?? 90_000);
 
 const bus = new RpcBus();
@@ -307,6 +326,75 @@ bus.on(RpcMethods.DISTRACTING_SET, async (params: unknown) => {
   const { domains } = params as { domains: string[] };
   return setDistractingDomains(db, domains);
 });
+
+// --- Analytics ---
+bus.on(RpcMethods.HABIT_UPSERT, async (p: unknown) =>
+  habitUpsert(db, p as Parameters<typeof habitUpsert>[1]),
+);
+bus.on(RpcMethods.HABIT_LOG, async (p: unknown) =>
+  habitLog(db, p as Parameters<typeof habitLog>[1]),
+);
+bus.on(RpcMethods.HABIT_SUMMARY, async (p: unknown) =>
+  habitSummary(db, (p ?? {}) as Parameters<typeof habitSummary>[1]),
+);
+bus.on(RpcMethods.JOURNAL_ADD, async (p: unknown) =>
+  journalAdd(db, p as Parameters<typeof journalAdd>[1]),
+);
+bus.on(RpcMethods.JOURNAL_RECENT, async (p: unknown) =>
+  journalRecent(db, (p ?? {}) as Parameters<typeof journalRecent>[1]),
+);
+bus.on(RpcMethods.TIMEBLOCK_CREATE, async (p: unknown) =>
+  timeBlockCreate(db, p as Parameters<typeof timeBlockCreate>[1]),
+);
+bus.on(RpcMethods.ACTIVITY_LOG, async (p: unknown) =>
+  activityLog(db, p as Parameters<typeof activityLog>[1]),
+);
+
+// --- Knowledge graph ---
+bus.on(RpcMethods.GRAPH_ENTITY_UPSERT, async (p: unknown) =>
+  entityUpsert(db, p as Parameters<typeof entityUpsert>[1]),
+);
+bus.on(RpcMethods.GRAPH_EDGE_ADD, async (p: unknown) =>
+  edgeAdd(db, p as Parameters<typeof edgeAdd>[1]),
+);
+bus.on(RpcMethods.GRAPH_QUERY, async (p: unknown) =>
+  graphQuery(db, p as Parameters<typeof graphQuery>[1]),
+);
+
+// --- File index ---
+bus.on(RpcMethods.FILE_INDEX, async (p: unknown) => {
+  const { root, limit } = p as { root: string; limit?: number };
+  return indexFiles(db, root, limit);
+});
+bus.on(RpcMethods.FILE_SEARCH, async (p: unknown) =>
+  fileSearch(db, p as Parameters<typeof fileSearch>[1]),
+);
+
+// --- Flashcards ---
+bus.on(RpcMethods.CARDS_FROM_NOTE, async (p: unknown) =>
+  flashcardsFromNote(db, p as Parameters<typeof flashcardsFromNote>[1]),
+);
+bus.on(RpcMethods.CARDS_DUE, async (p: unknown) =>
+  cardsDue(db, (p ?? {}) as Parameters<typeof cardsDue>[1]),
+);
+bus.on(RpcMethods.CARDS_GRADE, async (p: unknown) =>
+  cardGrade(db, p as Parameters<typeof cardGrade>[1]),
+);
+
+// --- Shell + git ---
+bus.on(RpcMethods.SHELL_ALLOWLIST, async () => shellAllowList(db));
+bus.on(RpcMethods.SHELL_ALLOW, async (p: unknown) =>
+  shellAllow(db, p as Parameters<typeof shellAllow>[1]),
+);
+bus.on(RpcMethods.SHELL_RUN, async (p: unknown) =>
+  shellRun(db, p as Parameters<typeof shellRun>[1]),
+);
+bus.on(RpcMethods.GIT_COMMIT_MSG, async (p: unknown) =>
+  gitCommitMsg(db, p as Parameters<typeof gitCommitMsg>[1]),
+);
+bus.on(RpcMethods.GIT_PR_DESCRIPTION, async (p: unknown) =>
+  gitPrDescription(p as Parameters<typeof gitPrDescription>[0]),
+);
 
 // --- Voice ---
 bus.on(RpcMethods.VOICE_TRANSCRIBE, async (params: unknown) =>

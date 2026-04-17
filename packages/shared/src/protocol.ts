@@ -109,6 +109,31 @@ export const RpcMethods = {
   MILESTONE_ADD: "passio.milestone.add",
   MILESTONE_DONE: "passio.milestone.done",
   MILESTONE_RESCHEDULE: "passio.milestone.reschedule",
+  // Analytics
+  HABIT_UPSERT: "passio.habit.upsert",
+  HABIT_LOG: "passio.habit.log",
+  HABIT_SUMMARY: "passio.habit.summary",
+  JOURNAL_ADD: "passio.journal.add",
+  JOURNAL_RECENT: "passio.journal.recent",
+  TIMEBLOCK_CREATE: "passio.timeBlock.create",
+  ACTIVITY_LOG: "passio.activity.log",
+  // Knowledge graph
+  GRAPH_ENTITY_UPSERT: "passio.graph.entityUpsert",
+  GRAPH_EDGE_ADD: "passio.graph.edgeAdd",
+  GRAPH_QUERY: "passio.graph.query",
+  // File index
+  FILE_INDEX: "passio.file.index",
+  FILE_SEARCH: "passio.file.search",
+  // Flashcards
+  CARDS_FROM_NOTE: "passio.cards.fromNote",
+  CARDS_DUE: "passio.cards.due",
+  CARDS_GRADE: "passio.cards.grade",
+  // Shell + git
+  SHELL_RUN: "passio.shell.run",
+  SHELL_ALLOWLIST: "passio.shell.allowlist",
+  SHELL_ALLOW: "passio.shell.allow",
+  GIT_COMMIT_MSG: "passio.git.commitMsg",
+  GIT_PR_DESCRIPTION: "passio.git.prDescription",
   // Voice
   VOICE_TRANSCRIBE: "passio.voice.transcribe",
   VOICE_SYNTHESIZE: "passio.voice.synthesize",

@@ -192,6 +192,110 @@ const DDL = [
   `CREATE TRIGGER IF NOT EXISTS event_ad AFTER DELETE ON events BEGIN
      INSERT INTO event_fts(event_fts, rowid, summary, content, tags) VALUES('delete', old.id, coalesce(old.summary, ''), old.content, coalesce(old.tags, ''));
    END`,
+
+  // === Analytics ===
+  `CREATE TABLE IF NOT EXISTS habits (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     name TEXT UNIQUE NOT NULL,
+     target_per_week INTEGER DEFAULT 0,
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+   )`,
+  `CREATE TABLE IF NOT EXISTS habit_log (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+     ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_habit_log_habit ON habit_log(habit_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_habit_log_ts ON habit_log(ts)`,
+  `CREATE TABLE IF NOT EXISTS journal_entries (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     prompt TEXT,
+     body TEXT NOT NULL,
+     mood INTEGER,
+     energy INTEGER
+   )`,
+  `CREATE TABLE IF NOT EXISTS time_blocks (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     start_at TEXT NOT NULL,
+     end_at TEXT,
+     kind TEXT NOT NULL,
+     label TEXT,
+     goal_id INTEGER REFERENCES goals(id) ON DELETE SET NULL
+   )`,
+  `CREATE TABLE IF NOT EXISTS activity_log (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     app TEXT,
+     window_title TEXT,
+     duration_seconds INTEGER,
+     classification TEXT
+   )`,
+
+  // === Knowledge graph ===
+  `CREATE TABLE IF NOT EXISTS entities (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     kind TEXT NOT NULL,
+     name TEXT NOT NULL,
+     canonical_id TEXT,
+     data TEXT,
+     UNIQUE(kind, name)
+   )`,
+  `CREATE TABLE IF NOT EXISTS edges (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     src_id INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+     dst_id INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
+     relation TEXT NOT NULL,
+     weight REAL NOT NULL DEFAULT 1,
+     source_ref TEXT,
+     ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_edges_src ON edges(src_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_edges_dst ON edges(dst_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_edges_relation ON edges(relation)`,
+
+  // === Local file index ===
+  `CREATE TABLE IF NOT EXISTS files (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     path TEXT UNIQUE NOT NULL,
+     ext TEXT,
+     bytes INTEGER,
+     mtime TEXT,
+     content_hash TEXT,
+     summary TEXT,
+     indexed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_files_mtime ON files(mtime)`,
+  `CREATE INDEX IF NOT EXISTS idx_files_ext ON files(ext)`,
+  `CREATE VIRTUAL TABLE IF NOT EXISTS file_fts USING fts5(
+     summary, path,
+     content='files', content_rowid='id'
+   )`,
+  `CREATE TRIGGER IF NOT EXISTS file_ai AFTER INSERT ON files BEGIN
+     INSERT INTO file_fts(rowid, summary, path) VALUES (new.id, coalesce(new.summary, ''), new.path);
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS file_ad AFTER DELETE ON files BEGIN
+     INSERT INTO file_fts(file_fts, rowid, summary, path) VALUES('delete', old.id, coalesce(old.summary, ''), old.path);
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS file_au AFTER UPDATE ON files BEGIN
+     INSERT INTO file_fts(file_fts, rowid, summary, path) VALUES('delete', old.id, coalesce(old.summary, ''), old.path);
+     INSERT INTO file_fts(rowid, summary, path) VALUES (new.id, coalesce(new.summary, ''), new.path);
+   END`,
+
+  // === Flashcards (SM-2) ===
+  `CREATE TABLE IF NOT EXISTS cards (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     deck TEXT NOT NULL DEFAULT 'default',
+     front TEXT NOT NULL,
+     back TEXT NOT NULL,
+     ef REAL NOT NULL DEFAULT 2.5,
+     interval_days INTEGER NOT NULL DEFAULT 0,
+     repetitions INTEGER NOT NULL DEFAULT 0,
+     due_at TEXT,
+     source_note_id INTEGER REFERENCES notes(id) ON DELETE SET NULL,
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_cards_due ON cards(due_at)`,
 ];
 
 /**
@@ -213,6 +317,10 @@ const VEC_DDL = [
    )`,
   `CREATE VIRTUAL TABLE IF NOT EXISTS vault_vec USING vec0(
      vault_id INTEGER PRIMARY KEY,
+     embedding FLOAT[${VEC_DIM}]
+   )`,
+  `CREATE VIRTUAL TABLE IF NOT EXISTS file_vec USING vec0(
+     file_id INTEGER PRIMARY KEY,
      embedding FLOAT[${VEC_DIM}]
    )`,
 ];

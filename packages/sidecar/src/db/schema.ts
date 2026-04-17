@@ -121,6 +121,18 @@ export const goalReviews = sqliteTable("goal_reviews", {
   nextActions: text("next_actions"), // JSON array
 });
 
+// === Local file index ===
+export const files = sqliteTable("files", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  path: text("path").notNull().unique(),
+  ext: text("ext"),
+  bytes: integer("bytes"),
+  mtime: text("mtime"),
+  contentHash: text("content_hash"),
+  summary: text("summary"),
+  indexedAt: text("indexed_at").notNull().default(now),
+});
+
 // === Obsidian vault mirror ===
 export const vaultNotes = sqliteTable("vault_notes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
