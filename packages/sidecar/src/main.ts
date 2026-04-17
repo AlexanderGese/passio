@@ -37,8 +37,11 @@ import {
   journalRecent,
   timeBlockCreate,
 } from "./tools/analytics.js";
+import { setCalendarSources, upcomingEvents } from "./tools/calendar.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
 import { mailInbox, mailSearch, mailSend, mailUnread } from "./tools/mail.js";
+import { latestItems, setFeeds } from "./tools/rss.js";
+import { currentWeather, setLocation as setWeatherLocation } from "./tools/weather.js";
 import { getKeybinds, getPersona, setKeybinds, setPersona } from "./tools/persona.js";
 import { fileSearch, indexFiles } from "./tools/files.js";
 import { edgeAdd, entityUpsert, graphQuery } from "./tools/graph.js";
@@ -220,6 +223,27 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   const { id, allowed } = p as { id: string; allowed: boolean };
   bus.resolveGate(id, allowed);
   return { ok: true };
+});
+
+// --- Calendar / RSS / Weather ---
+bus.on(RpcMethods.CAL_UPCOMING, async (p: unknown) =>
+  upcomingEvents(db, (p ?? {}) as Parameters<typeof upcomingEvents>[1]),
+);
+bus.on(RpcMethods.CAL_SET_SOURCES, async (p: unknown) => {
+  const { sources } = p as { sources: string[] };
+  return setCalendarSources(db, sources);
+});
+bus.on(RpcMethods.RSS_LATEST, async (p: unknown) =>
+  latestItems(db, (p ?? {}) as Parameters<typeof latestItems>[1]),
+);
+bus.on(RpcMethods.RSS_SET_FEEDS, async (p: unknown) => {
+  const { feeds } = p as { feeds: string[] };
+  return setFeeds(db, feeds);
+});
+bus.on(RpcMethods.WEATHER_NOW, async () => currentWeather(db));
+bus.on(RpcMethods.WEATHER_SET_LOCATION, async (p: unknown) => {
+  const { location } = p as { location: { lat: number; lon: number; name: string } | null };
+  return setWeatherLocation(db, location);
 });
 
 // --- Mail ---

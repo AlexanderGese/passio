@@ -140,6 +140,15 @@ export const RpcMethods = {
   // Text transforms
   REWRITE: "passio.rewrite",
   TRANSLATE: "passio.translate",
+  // Calendar
+  CAL_UPCOMING: "passio.calendar.upcoming",
+  CAL_SET_SOURCES: "passio.calendar.setSources",
+  // RSS
+  RSS_LATEST: "passio.rss.latest",
+  RSS_SET_FEEDS: "passio.rss.setFeeds",
+  // Weather
+  WEATHER_NOW: "passio.weather.now",
+  WEATHER_SET_LOCATION: "passio.weather.setLocation",
   // Mail
   MAIL_INBOX: "passio.mail.inbox",
   MAIL_UNREAD: "passio.mail.unread",

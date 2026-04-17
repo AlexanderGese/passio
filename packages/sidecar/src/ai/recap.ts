@@ -3,6 +3,9 @@ import { generateText } from "ai";
 import { and, eq, gte, lte } from "drizzle-orm";
 import type { Db } from "../db/client.js";
 import { events, goals, todos } from "../db/schema.js";
+import { upcomingEvents } from "../tools/calendar.js";
+import { latestItems } from "../tools/rss.js";
+import { currentWeather } from "../tools/weather.js";
 
 /**
  * End-of-day recap + start-of-day briefing. Both use the economy tier.
@@ -101,6 +104,12 @@ export async function dailyRecap(
 export async function morningBriefing(db: Db): Promise<{ briefing: string }> {
   const today = new Date().toISOString().slice(0, 10);
 
+  const [weather, calendar, rss] = await Promise.all([
+    currentWeather(db).catch(() => null),
+    upcomingEvents(db, { limit: 3, days: 2 }).catch(() => ({ events: [] })),
+    latestItems(db, { hours: 24, limit: 3 }).catch(() => ({ items: [] })),
+  ]);
+
   const openTodos = await db
     .select()
     .from(todos)
@@ -133,6 +142,21 @@ export async function morningBriefing(db: Db): Promise<{ briefing: string }> {
   const hasKey = Boolean(process.env.PASSIO_OPENAI_API_KEY || process.env.OPENAI_API_KEY);
   if (!hasKey) {
     const lines: string[] = [`Good morning — ${today}`];
+    if (weather) {
+      lines.push(
+        `Weather in ${weather.location}: ${weather.description}, ${weather.temp_c}°C (H ${weather.temp_high_c} / L ${weather.temp_low_c}).`,
+      );
+    }
+    if (calendar.events.length) {
+      lines.push("Upcoming:");
+      for (const e of calendar.events) {
+        lines.push(`  • ${e.start} — ${e.summary}`);
+      }
+    }
+    if (rss.items.length) {
+      lines.push("From your feeds (24h):");
+      for (const it of rss.items) lines.push(`  • ${it.title} — ${it.feed}`);
+    }
     if (prioritised.length) {
       lines.push("Today's top tasks:");
       for (const t of prioritised) {
@@ -154,9 +178,22 @@ export async function morningBriefing(db: Db): Promise<{ briefing: string }> {
   const { text } = await generateText({
     model: openai()(economyModel()),
     system:
-      "You are Passio writing a morning briefing for the user. 3–4 sentences. Lead with the most consequential thing. Mention 2 goal-linked actions. Keep it actionable and warm. No bullet lists.",
+      "You are Passio writing a morning briefing for the user. 3–4 sentences. Lead with the most consequential thing. Weave in weather/calendar/news if useful, but don't list them mechanically. Mention 2 goal-linked actions. Keep it actionable and warm. No bullet lists.",
     prompt: [
       `Date: ${today}`,
+      weather
+        ? `Weather: ${weather.description}, ${weather.temp_c}°C in ${weather.location} (H ${weather.temp_high_c}/L ${weather.temp_low_c})`
+        : "",
+      calendar.events.length
+        ? `Calendar next 48h:\n${calendar.events
+            .map((e) => `  • ${e.start} — ${e.summary}`)
+            .join("\n")}`
+        : "",
+      rss.items.length
+        ? `Top feed items (last 24h):\n${rss.items
+            .map((i) => `  • ${i.title} (${i.feed})`)
+            .join("\n")}`
+        : "",
       `Open todos by priority:`,
       prioritised
         .map((t) => `  • [p${t.priority}] ${t.text}${t.dueAt ? ` (due ${t.dueAt})` : ""}`)
