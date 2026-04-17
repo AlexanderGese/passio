@@ -9,6 +9,7 @@
 //! All AI / memory / tool logic lives in the sidecar, never here.
 
 mod commands;
+mod gate;
 mod hotkeys;
 mod keychain;
 mod logs;
@@ -20,6 +21,7 @@ mod sidecar;
 use std::sync::Arc;
 
 use serde_json::json;
+use gate::GateState;
 use sidecar::{Sidecar, SidecarEvent};
 use tauri::{
     menu::{Menu, MenuItem},
@@ -41,13 +43,45 @@ pub fn run() {
         .setup(move |app| {
             let handle = app.handle().clone();
 
+            let gate_state = GateState::new();
+            app.manage(gate_state.clone());
+
             let emit_handle = handle.clone();
+            let gate_for_sink = gate_state.clone();
+            // Sidecar is constructed after sink; we share it via Arc<Mutex<Option<Sidecar>>>
+            // pattern — but simpler: build sink first that only handles log/bubble/crash
+            // + Gate handled via listen('passio://sidecar-gate-request') below.
             let event_sink: sidecar::EventSink = Arc::new(move |evt: SidecarEvent| {
-                forward_event(&emit_handle, evt);
+                forward_event(&emit_handle, &gate_for_sink, evt);
             });
 
             let sidecar = Sidecar::new(sidecar_bin.clone(), event_sink);
             app.manage(sidecar.clone());
+            // Now that sidecar exists, handle deferred gate requests.
+            let gate_router = gate_state.clone();
+            let handle_router = handle.clone();
+            let sidecar_router = sidecar.clone();
+            handle.listen("passio://sidecar-gate-request", move |ev| {
+                let params: serde_json::Value =
+                    serde_json::from_str(ev.payload()).unwrap_or(serde_json::Value::Null);
+                let sc = sidecar_router.clone();
+                let h = handle_router.clone();
+                let g = gate_router.clone();
+                tauri::async_runtime::spawn(async move {
+                    // Look up countdown seconds from sidecar settings.
+                    let secs = match sc
+                        .call("passio.policy.get", serde_json::json!({}))
+                        .await
+                    {
+                        Ok(v) => v
+                            .get("countdownSeconds")
+                            .and_then(|n| n.as_u64())
+                            .unwrap_or(3) as u32,
+                        Err(_) => 3,
+                    };
+                    g.begin(h, sc, params, secs);
+                });
+            });
 
             let scheduler = scheduler::Scheduler::new(sidecar.clone(), 10);
             scheduler.spawn();
@@ -128,6 +162,12 @@ pub fn run() {
             commands::keychain_has,
             commands::keychain_delete,
             commands::first_run_done,
+            commands::policy_get,
+            commands::policy_set,
+            commands::policy_delete,
+            commands::policy_set_countdown,
+            commands::blocklist_set,
+            commands::gate_resolve,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -139,7 +179,7 @@ pub fn run() {
         .expect("tauri run");
 }
 
-fn forward_event(handle: &AppHandle, evt: SidecarEvent) {
+fn forward_event(handle: &AppHandle, _gate: &GateState, evt: SidecarEvent) {
     let (topic, payload) = match evt {
         SidecarEvent::Log { level, message } => (
             "passio://sidecar-log",
@@ -154,6 +194,7 @@ fn forward_event(handle: &AppHandle, evt: SidecarEvent) {
             "passio://sidecar-spawn-failed",
             json!({ "reason": reason }),
         ),
+        SidecarEvent::GateRequest(v) => ("passio://sidecar-gate-request", v),
     };
     let _ = handle.emit(topic, payload);
 }

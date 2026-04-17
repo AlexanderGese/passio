@@ -3,6 +3,7 @@ import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { Db } from "../db/client.js";
 import type { BridgeServer } from "../bridge/server.js";
+import type { RpcBus } from "../rpc.js";
 import * as browser from "../tools/browser.js";
 import { explainSelection, savePage, summarizePage } from "../tools/browser_compound.js";
 import { conversations, messages } from "../db/schema.js";
@@ -76,6 +77,7 @@ export async function chat(
   emit: Emitter,
   input: { prompt: string; conversationId?: number },
   bridge?: BridgeServer,
+  bus?: RpcBus,
 ): Promise<{ conversationId: number; text: string }> {
   // Ensure a conversation id
   let convId = input.conversationId;
@@ -102,7 +104,7 @@ export async function chat(
         .join("\n")
     : "Retrieved context: (none yet — this is a cold memory)";
 
-  const tools = buildTools(db, bridge);
+  const tools = buildTools(db, bridge, bus);
   const result = await generateText({
     model: openai()(modelName()),
     system: `${SYSTEM_PROMPT}\n\n${contextBlock}`,
@@ -126,8 +128,8 @@ export async function chat(
   return { conversationId: convId, text: result.text };
 }
 
-function buildTools(db: Db, bridge?: BridgeServer) {
-  const browserTools = bridge ? buildBrowserTools(db, bridge) : {};
+function buildTools(db: Db, bridge?: BridgeServer, bus?: RpcBus) {
+  const browserTools = bridge ? buildBrowserTools(db, bridge, bus) : {};
   return {
     ...browserTools,
     memory_remember: tool({
@@ -342,8 +344,8 @@ function buildTools(db: Db, bridge?: BridgeServer) {
   };
 }
 
-function buildBrowserTools(db: Db, bridge: BridgeServer) {
-  const deps = { bridge, db };
+function buildBrowserTools(db: Db, bridge: BridgeServer, bus?: RpcBus) {
+  const deps = { bridge, db, bus };
   return {
     get_current_tab: tool({
       description: "Read the user's currently focused browser tab (URL, title, tabId).",

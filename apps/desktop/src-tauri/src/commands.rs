@@ -245,6 +245,63 @@ pub async fn keychain_delete(key: String) -> Result<(), String> {
     crate::keychain::delete_secret(&key).map_err(|e| e.to_string())
 }
 
+// ---- Safety rails / policy / gate ----
+
+#[tauri::command]
+pub async fn policy_get(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.policy.get", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn policy_set(
+    sidecar: State<'_, Sidecar>,
+    host: String,
+    policy: String,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.policy.set", json!({ "host": host, "policy": policy }))
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn policy_delete(
+    sidecar: State<'_, Sidecar>,
+    host: String,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.policy.delete", json!({ "host": host }))
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn policy_set_countdown(
+    sidecar: State<'_, Sidecar>,
+    seconds: u32,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.policy.setCountdown", json!({ "seconds": seconds }))
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn blocklist_set(
+    sidecar: State<'_, Sidecar>,
+    entries: Value,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.blocklist.set", json!({ "entries": entries }))
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn gate_resolve(
+    gate: State<'_, crate::gate::GateState>,
+    id: String,
+    allowed: bool,
+) -> Result<(), String> {
+    gate.resolve(&id, allowed);
+    Ok(())
+}
+
 // ---- First-run helpers ----
 #[tauri::command]
 pub async fn first_run_done(sidecar: State<'_, Sidecar>) -> Result<bool, String> {

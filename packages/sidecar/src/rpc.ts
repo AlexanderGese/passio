@@ -12,6 +12,11 @@ export type RpcHandler<P = unknown, R = unknown> = (params: P) => Promise<R> | R
 export class RpcBus {
   private handlers = new Map<string, RpcHandler>();
   private buffer = "";
+  /** Pending gate verdicts (id → resolver). */
+  private gatePending = new Map<
+    string,
+    { resolve: (allowed: boolean) => void; timer: Timer }
+  >();
 
   /** Register a handler for an RPC method name. */
   on<P, R>(method: string, handler: RpcHandler<P, R>): void {
@@ -85,6 +90,29 @@ export class RpcBus {
   notify(method: string, params?: unknown): void {
     const n: RpcNotification = { jsonrpc: "2.0", method, ...(params !== undefined ? { params } : {}) };
     this.send(n);
+  }
+
+  /**
+   * Wait for a matching `passio.gate.resolve` RPC call (Rust → sidecar).
+   * Resolves with `allowed`. On timeout, resolves `true` (fail-open —
+   * Rust's own timer will also fire and call us; we just race them).
+   */
+  awaitGateResolve(id: string, timeoutMs: number): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => {
+        if (this.gatePending.delete(id)) resolve(true);
+      }, timeoutMs);
+      this.gatePending.set(id, { resolve, timer });
+    });
+  }
+
+  /** Called by the passio.gate.resolve handler in main.ts. */
+  resolveGate(id: string, allowed: boolean): void {
+    const entry = this.gatePending.get(id);
+    if (!entry) return;
+    clearTimeout(entry.timer);
+    this.gatePending.delete(id);
+    entry.resolve(allowed);
   }
 }
 

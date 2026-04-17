@@ -140,6 +140,14 @@ export const RpcMethods = {
   // Text transforms
   REWRITE: "passio.rewrite",
   TRANSLATE: "passio.translate",
+  // Safety rails — policy, blocklist, gate
+  POLICY_GET: "passio.policy.get",
+  POLICY_SET: "passio.policy.set",
+  POLICY_DELETE: "passio.policy.delete",
+  POLICY_SET_COUNTDOWN: "passio.policy.setCountdown",
+  BLOCKLIST_SET: "passio.blocklist.set",
+  GATE_RESOLVE: "passio.gate.resolve", // Rust → sidecar
+  NOTIFY_GATE_REQUEST: "passio.gate.request", // sidecar → Rust
   // Focus / packs / DND / proactive
   FOCUS_GET_STATE: "passio.focus.getState",
   FOCUS_START: "passio.focus.start",

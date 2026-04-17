@@ -13,6 +13,17 @@
  */
 import { RpcMethods, type PingResult } from "@passio/shared";
 import { chat } from "./ai/agent.js";
+import {
+  deletePolicy,
+  getBlocklist,
+  getCountdownSeconds,
+  getPolicies,
+  setBlocklist,
+  setCountdownSeconds,
+  setPolicy,
+  type BlocklistEntry,
+  type Policy,
+} from "./bridge/gate.js";
 import { dailyRecap, morningBriefing } from "./ai/recap.js";
 import { scan } from "./ai/scan.js";
 import { rewrite, translate } from "./ai/transform.js";
@@ -91,7 +102,7 @@ import {
 } from "./vault/tools.js";
 import { watchVault } from "./vault/watcher.js";
 
-const SIDECAR_VERSION = "0.7.0";
+const SIDECAR_VERSION = "0.8.0";
 const DEFAULT_IDLE_MS = Number(process.env.PASSIO_IDLE_MS ?? 90_000);
 
 const bus = new RpcBus();
@@ -173,7 +184,40 @@ bus.on(RpcMethods.CHAT, async (params: unknown) => {
     (m, p) => bus.notify(m, p),
     conversationId !== undefined ? { prompt, conversationId } : { prompt },
     bridge,
+    bus,
   );
+});
+
+// --- Safety rails: policy / blocklist / gate ---
+bus.on(RpcMethods.POLICY_GET, async () => ({
+  domains: getPolicies(db),
+  countdownSeconds: getCountdownSeconds(db),
+  blocklist: getBlocklist(db),
+}));
+bus.on(RpcMethods.POLICY_SET, async (p: unknown) => {
+  const { host, policy } = p as { host: string; policy: Policy };
+  setPolicy(db, host, policy);
+  return { ok: true };
+});
+bus.on(RpcMethods.POLICY_DELETE, async (p: unknown) => {
+  const { host } = p as { host: string };
+  deletePolicy(db, host);
+  return { ok: true };
+});
+bus.on(RpcMethods.POLICY_SET_COUNTDOWN, async (p: unknown) => {
+  const { seconds } = p as { seconds: number };
+  setCountdownSeconds(db, seconds);
+  return { ok: true };
+});
+bus.on(RpcMethods.BLOCKLIST_SET, async (p: unknown) => {
+  const { entries } = p as { entries: BlocklistEntry[] };
+  setBlocklist(db, entries);
+  return { ok: true };
+});
+bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
+  const { id, allowed } = p as { id: string; allowed: boolean };
+  bus.resolveGate(id, allowed);
+  return { ok: true };
 });
 
 // Direct memory / todo / note / intent RPCs (for the HUD to call without

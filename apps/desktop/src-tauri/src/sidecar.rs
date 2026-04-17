@@ -55,6 +55,7 @@ pub enum SidecarEvent {
     BubbleState(Value),
     Crash { reason: String },
     SpawnFailed { reason: String },
+    GateRequest(Value),
 }
 
 pub type EventSink = Arc<dyn Fn(SidecarEvent) + Send + Sync>;
@@ -300,6 +301,11 @@ fn dispatch_notification(notif: RpcNotification, events: &EventSink) {
         "passio.bubbleState" => {
             if let Some(params) = notif.params {
                 events(SidecarEvent::BubbleState(params));
+            }
+        }
+        "passio.gate.request" => {
+            if let Some(params) = notif.params {
+                events(SidecarEvent::GateRequest(params));
             }
         }
         other => {
