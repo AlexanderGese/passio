@@ -7,6 +7,36 @@
 
 export type Tier = "economy" | "standard" | "power" | "reasoning";
 
+export function ollamaAvailable(): boolean {
+  return Boolean(process.env.PASSIO_OLLAMA_URL);
+}
+export function ollamaModel(): string {
+  return process.env.PASSIO_OLLAMA_MODEL || "llama3.2:3b";
+}
+export function ollamaUrl(): string {
+  return process.env.PASSIO_OLLAMA_URL || "http://localhost:11434";
+}
+
+/** Minimal Ollama chat completion. Doesn't stream; returns text. */
+export async function ollamaChat(
+  prompt: string,
+  system?: string,
+): Promise<string> {
+  const res = await fetch(`${ollamaUrl()}/api/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: ollamaModel(),
+      prompt,
+      ...(system ? { system } : {}),
+      stream: false,
+    }),
+  });
+  if (!res.ok) throw new Error(`ollama ${res.status}`);
+  const j = (await res.json()) as { response?: string };
+  return (j.response ?? "").trim();
+}
+
 export function resolveModel(tier: Tier): string {
   switch (tier) {
     case "economy":

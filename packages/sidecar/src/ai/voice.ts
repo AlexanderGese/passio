@@ -32,9 +32,24 @@ export interface TranscribeInput {
   mime_type?: string; // defaults to audio/webm
   language?: string; // ISO code, e.g. "en"
   prompt?: string;
+  /** 'local' forces whisper.cpp; 'cloud' forces OpenAI; default auto-detects. */
+  backend?: "auto" | "local" | "cloud";
 }
 
-export async function transcribe(input: TranscribeInput): Promise<{ text: string }> {
+export async function transcribe(input: TranscribeInput): Promise<{ text: string; backend?: string }> {
+  const backend = input.backend ?? "auto";
+  if (backend === "local" || (backend === "auto" && process.env.PASSIO_WHISPER_MODEL)) {
+    try {
+      const { transcribeLocal } = await import("./voice_local.js");
+      return await transcribeLocal({
+        audio_base64: input.audio_base64,
+        ...(input.mime_type ? { mime_type: input.mime_type } : {}),
+      });
+    } catch (e) {
+      if (backend === "local") throw e;
+      // else fall through to cloud
+    }
+  }
   const mime = input.mime_type ?? "audio/webm";
   const bytes = Buffer.from(input.audio_base64, "base64");
   const blob = new Blob([new Uint8Array(bytes)], { type: mime });
