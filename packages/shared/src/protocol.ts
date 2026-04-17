@@ -140,6 +140,11 @@ export const RpcMethods = {
   // Text transforms
   REWRITE: "passio.rewrite",
   TRANSLATE: "passio.translate",
+  // Mail
+  MAIL_INBOX: "passio.mail.inbox",
+  MAIL_UNREAD: "passio.mail.unread",
+  MAIL_SEARCH: "passio.mail.search",
+  MAIL_SEND: "passio.mail.send",
   // Personalisation
   PERSONA_GET: "passio.persona.get",
   PERSONA_SET: "passio.persona.set",

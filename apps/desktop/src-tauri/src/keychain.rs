@@ -33,7 +33,7 @@ pub fn delete_secret(key: &str) -> Result<()> {
     }
 }
 
-/// Load OpenAI/Anthropic keys from the keyring and return them as a
+/// Load all known credentials from the keyring and return them as a
 /// `(env_var_name, value)` vec, suitable for `cmd.env(...)` on the
 /// sidecar spawn.
 pub fn env_from_keyring() -> Vec<(&'static str, String)> {
@@ -43,6 +43,12 @@ pub fn env_from_keyring() -> Vec<(&'static str, String)> {
     }
     if let Ok(Some(v)) = get_secret("anthropic") {
         out.push(("PASSIO_ANTHROPIC_API_KEY", v));
+    }
+    if let Ok(Some(v)) = get_secret("mail_user") {
+        out.push(("PASSIO_MAIL_USER", v));
+    }
+    if let Ok(Some(v)) = get_secret("mail_pass") {
+        out.push(("PASSIO_MAIL_APP_PASSWORD", v));
     }
     out
 }

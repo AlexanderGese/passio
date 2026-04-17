@@ -38,6 +38,7 @@ import {
   timeBlockCreate,
 } from "./tools/analytics.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
+import { mailInbox, mailSearch, mailSend, mailUnread } from "./tools/mail.js";
 import { getKeybinds, getPersona, setKeybinds, setPersona } from "./tools/persona.js";
 import { fileSearch, indexFiles } from "./tools/files.js";
 import { edgeAdd, entityUpsert, graphQuery } from "./tools/graph.js";
@@ -220,6 +221,20 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   bus.resolveGate(id, allowed);
   return { ok: true };
 });
+
+// --- Mail ---
+bus.on(RpcMethods.MAIL_INBOX, async (p: unknown) =>
+  mailInbox(db, (p ?? {}) as Parameters<typeof mailInbox>[1]),
+);
+bus.on(RpcMethods.MAIL_UNREAD, async (p: unknown) =>
+  mailUnread(db, (p ?? {}) as Parameters<typeof mailUnread>[1]),
+);
+bus.on(RpcMethods.MAIL_SEARCH, async (p: unknown) =>
+  mailSearch(db, p as Parameters<typeof mailSearch>[1]),
+);
+bus.on(RpcMethods.MAIL_SEND, async (p: unknown) =>
+  mailSend(db, p as Parameters<typeof mailSend>[1]),
+);
 
 // --- Personalisation ---
 bus.on(RpcMethods.PERSONA_GET, async () => getPersona(db));
