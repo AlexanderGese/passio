@@ -5,6 +5,16 @@ import type { Db } from "../db/client.js";
 import { conversations, messages } from "../db/schema.js";
 import { retrieve } from "../context/retrieve.js";
 import {
+  goalCreate,
+  goalDecompose,
+  goalList,
+  goalReview,
+  goalUpdate,
+  milestoneAdd,
+  milestoneDone,
+  milestoneReschedule,
+} from "../tools/goals.js";
+import {
   memoryForget,
   memoryRemember,
   memorySearch,
@@ -15,6 +25,13 @@ import {
   todoList,
   setIntent,
 } from "../tools/memory.js";
+import {
+  dailyNoteAppendRecap,
+  vaultListTags,
+  vaultReadNote,
+  vaultSearch,
+  vaultWriteNote,
+} from "../vault/tools.js";
 
 /**
  * v1 agent loop. Single-shot `generateText` with a small tool set. Streaming
@@ -35,6 +52,10 @@ Tool-use policy:
   • For todo actions, use todo_add / todo_list / todo_done.
   • For ad-hoc notes, use note_save / note_search.
   • For daily focus, use set_intent.
+  • For ambitious goals with a deadline ("I want to get into MIT by 2027", "learn Japanese in 18 months"), call goal_create — it auto-breaks into milestones.
+  • For "what am I working on?" / "how's my marathon plan?" — goal_list.
+  • For weekly check-ins / reviews — goal_review.
+  • If a vault is configured, prefer vault_search over memory_search for anything that looks like user-authored notes, and use vault_write when the user asks you to save something as a markdown note.
   • Never invent facts about the user — either recall via tools or admit you don't know.`;
 
 function openai() {
@@ -183,6 +204,134 @@ function buildTools(db: Db) {
       description: "Set today's focus intent; pass null to clear.",
       inputSchema: z.object({ text: z.string().nullable() }),
       execute: async (args) => setIntent(db, args),
+    }),
+
+    // --- Goals ---
+    goal_create: tool({
+      description:
+        "Create an ambitious long-horizon goal and auto-decompose it into milestones with reverse-engineered due dates.",
+      inputSchema: z.object({
+        title: z.string().min(3),
+        description: z.string().optional(),
+        category: z
+          .enum([
+            "education",
+            "career",
+            "health",
+            "creative",
+            "language",
+            "financial",
+            "entrepreneurship",
+            "personal",
+          ])
+          .optional(),
+        target_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        motivation: z.string().optional(),
+      }),
+      execute: async (args) => goalCreate(db, args),
+    }),
+    goal_list: tool({
+      description: "List the user's goals, with milestones inline.",
+      inputSchema: z.object({
+        status: z.enum(["active", "paused", "achieved", "abandoned", "all"]).default("active"),
+      }),
+      execute: async (args) => goalList(db, args),
+    }),
+    goal_update: tool({
+      description:
+        "Update a goal's fields (title, description, status, priority, target_date, etc).",
+      inputSchema: z.object({
+        id: z.number().int(),
+        fields: z.object({
+          title: z.string().optional(),
+          description: z.string().optional(),
+          category: z.string().optional(),
+          targetDate: z.string().optional(),
+          status: z.enum(["active", "paused", "achieved", "abandoned"]).optional(),
+          priority: z.number().int().optional(),
+          motivation: z.string().optional(),
+        }),
+      }),
+      execute: async (args) => goalUpdate(db, args),
+    }),
+    goal_decompose: tool({
+      description: "Re-decompose an existing goal into milestones via the power model.",
+      inputSchema: z.object({
+        id: z.number().int(),
+        replace: z.boolean().default(false),
+      }),
+      execute: async (args) => goalDecompose(db, args),
+    }),
+    goal_review: tool({
+      description: "Generate a weekly / monthly / ad-hoc review of a goal (writes to goal_reviews).",
+      inputSchema: z.object({
+        id: z.number().int(),
+        kind: z.enum(["weekly", "monthly", "ad-hoc", "deadline-approaching"]).default("ad-hoc"),
+      }),
+      execute: async (args) => goalReview(db, args),
+    }),
+    milestone_add: tool({
+      description: "Add a milestone to an existing goal.",
+      inputSchema: z.object({
+        goal_id: z.number().int(),
+        title: z.string(),
+        description: z.string().optional(),
+        due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }),
+      execute: async (args) => milestoneAdd(db, args),
+    }),
+    milestone_done: tool({
+      description: "Mark a milestone done; auto-recomputes goal progress.",
+      inputSchema: z.object({ id: z.number().int() }),
+      execute: async (args) => milestoneDone(db, args),
+    }),
+    milestone_reschedule: tool({
+      description: "Shift a milestone's due_date.",
+      inputSchema: z.object({
+        id: z.number().int(),
+        new_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      }),
+      execute: async (args) => milestoneReschedule(db, args),
+    }),
+
+    // --- Obsidian vault ---
+    vault_search: tool({
+      description: "Full-text search across the user's Obsidian vault.",
+      inputSchema: z.object({
+        query: z.string().min(1),
+        limit: z.number().int().min(1).max(25).default(10),
+      }),
+      execute: async (args) => vaultSearch(db, args),
+    }),
+    vault_read_note: tool({
+      description: "Read a vault note by vault-relative path.",
+      inputSchema: z.object({ path: z.string() }),
+      execute: async (args) => vaultReadNote(db, args),
+    }),
+    vault_write_note: tool({
+      description:
+        "Write a markdown note into the vault. Defaults to the `passio/` subfolder; outside that requires explicit user consent via allow_outside_passio_subfolder.",
+      inputSchema: z.object({
+        path: z.string(),
+        body: z.string(),
+        frontmatter: z.record(z.unknown()).optional(),
+        allow_outside_passio_subfolder: z.boolean().default(false),
+      }),
+      execute: async (args) => vaultWriteNote(db, args),
+    }),
+    vault_list_tags: tool({
+      description: "List all tags across the user's vault with counts.",
+      inputSchema: z.object({}),
+      execute: async () => vaultListTags(db),
+    }),
+    daily_note_append_recap: tool({
+      description:
+        "Append or replace a `## Passio recap` section in today's daily note (or a given date's).",
+      inputSchema: z.object({
+        body: z.string(),
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }),
+      execute: async (args) => dailyNoteAppendRecap(db, args),
     }),
   };
 }

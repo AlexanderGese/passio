@@ -71,6 +71,9 @@ pub fn run() {
             commands::chat,
             commands::todo_list,
             commands::memory_search,
+            commands::goal_list,
+            commands::goal_create,
+            commands::milestone_done,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

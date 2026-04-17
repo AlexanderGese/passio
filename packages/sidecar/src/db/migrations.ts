@@ -79,6 +79,76 @@ const DDL = [
      value TEXT NOT NULL
    )`,
 
+  // === Goals ===
+  `CREATE TABLE IF NOT EXISTS goals (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     title TEXT NOT NULL,
+     description TEXT,
+     category TEXT,
+     target_date TEXT,
+     status TEXT NOT NULL DEFAULT 'active',
+     priority INTEGER NOT NULL DEFAULT 1,
+     progress REAL NOT NULL DEFAULT 0,
+     motivation TEXT,
+     last_reviewed TEXT
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status)`,
+
+  `CREATE TABLE IF NOT EXISTS milestones (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+     title TEXT NOT NULL,
+     description TEXT,
+     due_date TEXT,
+     status TEXT NOT NULL DEFAULT 'pending',
+     sort_order INTEGER NOT NULL DEFAULT 0,
+     completed_at TEXT
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_milestones_goal ON milestones(goal_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_milestones_due ON milestones(due_date)`,
+
+  `CREATE TABLE IF NOT EXISTS goal_reviews (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+     ts TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     kind TEXT NOT NULL,
+     summary TEXT NOT NULL,
+     progress_delta REAL,
+     blockers TEXT,
+     next_actions TEXT
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_goal_reviews_goal ON goal_reviews(goal_id)`,
+
+  // === Obsidian vault mirror ===
+  `CREATE TABLE IF NOT EXISTS vault_notes (
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     path TEXT NOT NULL UNIQUE,
+     title TEXT,
+     body TEXT NOT NULL,
+     frontmatter TEXT,
+     tags TEXT,
+     wiki_links TEXT,
+     mtime TEXT,
+     indexed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+   )`,
+  `CREATE INDEX IF NOT EXISTS idx_vault_mtime ON vault_notes(mtime)`,
+
+  `CREATE VIRTUAL TABLE IF NOT EXISTS vault_fts USING fts5(
+     title, body, tags, path,
+     content='vault_notes', content_rowid='id'
+   )`,
+  `CREATE TRIGGER IF NOT EXISTS vault_ai AFTER INSERT ON vault_notes BEGIN
+     INSERT INTO vault_fts(rowid, title, body, tags, path) VALUES (new.id, coalesce(new.title, ''), new.body, coalesce(new.tags, ''), new.path);
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS vault_ad AFTER DELETE ON vault_notes BEGIN
+     INSERT INTO vault_fts(vault_fts, rowid, title, body, tags, path) VALUES('delete', old.id, coalesce(old.title, ''), old.body, coalesce(old.tags, ''), old.path);
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS vault_au AFTER UPDATE ON vault_notes BEGIN
+     INSERT INTO vault_fts(vault_fts, rowid, title, body, tags, path) VALUES('delete', old.id, coalesce(old.title, ''), old.body, coalesce(old.tags, ''), old.path);
+     INSERT INTO vault_fts(rowid, title, body, tags, path) VALUES (new.id, coalesce(new.title, ''), new.body, coalesce(new.tags, ''), new.path);
+   END`,
+
   // === FTS5 virtual tables (external content, synced via triggers) ===
   `CREATE VIRTUAL TABLE IF NOT EXISTS fact_fts USING fts5(
      content, subject,
@@ -139,6 +209,10 @@ const VEC_DDL = [
    )`,
   `CREATE VIRTUAL TABLE IF NOT EXISTS event_vec USING vec0(
      event_id INTEGER PRIMARY KEY,
+     embedding FLOAT[${VEC_DIM}]
+   )`,
+  `CREATE VIRTUAL TABLE IF NOT EXISTS vault_vec USING vec0(
+     vault_id INTEGER PRIMARY KEY,
      embedding FLOAT[${VEC_DIM}]
    )`,
 ];

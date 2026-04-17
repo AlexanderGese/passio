@@ -80,6 +80,60 @@ export const messages = sqliteTable("messages", {
   toolCall: text("tool_call"),
 });
 
+// === Goals & long-horizon planning ===
+export const goals = sqliteTable("goals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  createdAt: text("created_at").notNull().default(now),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category"), // education|career|health|creative|language|financial|entrepreneurship|personal
+  targetDate: text("target_date"), // YYYY-MM-DD
+  status: text("status").notNull().default("active"), // active|paused|achieved|abandoned
+  priority: integer("priority").notNull().default(1),
+  progress: real("progress").notNull().default(0),
+  motivation: text("motivation"),
+  lastReviewed: text("last_reviewed"),
+});
+
+export const milestones = sqliteTable("milestones", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  goalId: integer("goal_id")
+    .notNull()
+    .references(() => goals.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  dueDate: text("due_date"), // YYYY-MM-DD
+  status: text("status").notNull().default("pending"), // pending|in_progress|done|missed
+  sortOrder: integer("sort_order").notNull().default(0),
+  completedAt: text("completed_at"),
+});
+
+export const goalReviews = sqliteTable("goal_reviews", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  goalId: integer("goal_id")
+    .notNull()
+    .references(() => goals.id, { onDelete: "cascade" }),
+  ts: text("ts").notNull().default(now),
+  kind: text("kind").notNull(), // weekly|monthly|ad-hoc|deadline-approaching
+  summary: text("summary").notNull(),
+  progressDelta: real("progress_delta"),
+  blockers: text("blockers"), // JSON array
+  nextActions: text("next_actions"), // JSON array
+});
+
+// === Obsidian vault mirror ===
+export const vaultNotes = sqliteTable("vault_notes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  path: text("path").notNull().unique(), // vault-relative
+  title: text("title"),
+  body: text("body").notNull(),
+  frontmatter: text("frontmatter"), // JSON
+  tags: text("tags"),
+  wikiLinks: text("wiki_links"), // JSON array
+  mtime: text("mtime"),
+  indexedAt: text("indexed_at").notNull().default(now),
+});
+
 // === Settings (key/value) ===
 export const settings = sqliteTable(
   "settings",

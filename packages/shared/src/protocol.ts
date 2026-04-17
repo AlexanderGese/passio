@@ -100,6 +100,24 @@ export const RpcMethods = {
   // Intent
   INTENT_SET: "passio.intent.set",
   INTENT_GET: "passio.intent.get",
+  // Goals
+  GOAL_CREATE: "passio.goal.create",
+  GOAL_LIST: "passio.goal.list",
+  GOAL_UPDATE: "passio.goal.update",
+  GOAL_DECOMPOSE: "passio.goal.decompose",
+  GOAL_REVIEW: "passio.goal.review",
+  MILESTONE_ADD: "passio.milestone.add",
+  MILESTONE_DONE: "passio.milestone.done",
+  MILESTONE_RESCHEDULE: "passio.milestone.reschedule",
+  // Obsidian vault
+  VAULT_SET_ROOT: "passio.vault.setRoot",
+  VAULT_GET_ROOT: "passio.vault.getRoot",
+  VAULT_INDEX: "passio.vault.index",
+  VAULT_SEARCH: "passio.vault.search",
+  VAULT_READ: "passio.vault.read",
+  VAULT_WRITE: "passio.vault.write",
+  VAULT_LIST_TAGS: "passio.vault.listTags",
+  VAULT_DAILY_RECAP: "passio.vault.dailyRecap",
 
   // Sidecar → Rust notifications
   NOTIFY_BUBBLE_STATE: "passio.bubbleState",

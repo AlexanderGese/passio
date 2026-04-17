@@ -71,3 +71,37 @@ pub async fn memory_search(
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn goal_list(
+    sidecar: State<'_, Sidecar>,
+    status: Option<String>,
+) -> Result<Value, String> {
+    let params = json!({ "status": status.unwrap_or_else(|| "active".into()) });
+    sidecar
+        .call("passio.goal.list", params)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn goal_create(
+    sidecar: State<'_, Sidecar>,
+    payload: Value,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.goal.create", payload)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn milestone_done(
+    sidecar: State<'_, Sidecar>,
+    id: i64,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.milestone.done", json!({ "id": id }))
+        .await
+        .map_err(|e| e.to_string())
+}

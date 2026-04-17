@@ -17,6 +17,16 @@ import { openDb } from "./db/client.js";
 import { IdleWatchdog } from "./idle.js";
 import { RpcBus } from "./rpc.js";
 import {
+  goalCreate,
+  goalDecompose,
+  goalList,
+  goalReview,
+  goalUpdate,
+  milestoneAdd,
+  milestoneDone,
+  milestoneReschedule,
+} from "./tools/goals.js";
+import {
   getIntent,
   memoryForget,
   memoryRemember,
@@ -28,8 +38,19 @@ import {
   todoDone,
   todoList,
 } from "./tools/memory.js";
+import { indexVault } from "./vault/indexer.js";
+import {
+  dailyNoteAppendRecap,
+  getVaultRoot,
+  setVaultRoot,
+  vaultListTags,
+  vaultReadNote,
+  vaultSearch,
+  vaultWriteNote,
+} from "./vault/tools.js";
+import { watchVault } from "./vault/watcher.js";
 
-const SIDECAR_VERSION = "0.2.0";
+const SIDECAR_VERSION = "0.3.0";
 const DEFAULT_IDLE_MS = Number(process.env.PASSIO_IDLE_MS ?? 90_000);
 
 const bus = new RpcBus();
@@ -116,6 +137,92 @@ bus.on(RpcMethods.INTENT_SET, async (params: unknown) =>
   setIntent(db, params as Parameters<typeof setIntent>[1]),
 );
 bus.on(RpcMethods.INTENT_GET, async () => getIntent(db));
+
+// --- Goals ---
+bus.on(RpcMethods.GOAL_CREATE, async (params: unknown) =>
+  goalCreate(db, params as Parameters<typeof goalCreate>[1]),
+);
+bus.on(RpcMethods.GOAL_LIST, async (params: unknown) =>
+  goalList(db, (params ?? {}) as Parameters<typeof goalList>[1]),
+);
+bus.on(RpcMethods.GOAL_UPDATE, async (params: unknown) =>
+  goalUpdate(db, params as Parameters<typeof goalUpdate>[1]),
+);
+bus.on(RpcMethods.GOAL_DECOMPOSE, async (params: unknown) =>
+  goalDecompose(db, params as Parameters<typeof goalDecompose>[1]),
+);
+bus.on(RpcMethods.GOAL_REVIEW, async (params: unknown) =>
+  goalReview(db, params as Parameters<typeof goalReview>[1]),
+);
+bus.on(RpcMethods.MILESTONE_ADD, async (params: unknown) =>
+  milestoneAdd(db, params as Parameters<typeof milestoneAdd>[1]),
+);
+bus.on(RpcMethods.MILESTONE_DONE, async (params: unknown) =>
+  milestoneDone(db, params as Parameters<typeof milestoneDone>[1]),
+);
+bus.on(RpcMethods.MILESTONE_RESCHEDULE, async (params: unknown) =>
+  milestoneReschedule(db, params as Parameters<typeof milestoneReschedule>[1]),
+);
+
+// --- Obsidian vault ---
+bus.on(RpcMethods.VAULT_SET_ROOT, async (params: unknown) => {
+  const res = await setVaultRoot(db, params as Parameters<typeof setVaultRoot>[1]);
+  // Kick off an initial index + watcher after root is (re)configured.
+  const root = await getVaultRoot(db);
+  if (root) {
+    try {
+      const indexResult = await indexVault(db, root);
+      bus.notify(RpcMethods.NOTIFY_LOG, {
+        level: "info",
+        message: `vault indexed: ${indexResult.indexed}/${indexResult.total_md} files`,
+      });
+      if (!vaultWatcherClose) {
+        vaultWatcherClose = watchVault(db, root);
+      }
+    } catch (err) {
+      bus.notify(RpcMethods.NOTIFY_LOG, {
+        level: "warn",
+        message: `vault init failed: ${(err as Error).message}`,
+      });
+    }
+  } else if (vaultWatcherClose) {
+    await vaultWatcherClose.close();
+    vaultWatcherClose = null;
+  }
+  return res;
+});
+bus.on(RpcMethods.VAULT_GET_ROOT, async () => ({ path: await getVaultRoot(db) }));
+bus.on(RpcMethods.VAULT_INDEX, async (params: unknown) => {
+  const root = await getVaultRoot(db);
+  if (!root) throw new Error("vault root not configured");
+  const opts = (params ?? {}) as { limit?: number };
+  return indexVault(db, root, opts.limit);
+});
+bus.on(RpcMethods.VAULT_SEARCH, async (params: unknown) =>
+  vaultSearch(db, params as Parameters<typeof vaultSearch>[1]),
+);
+bus.on(RpcMethods.VAULT_READ, async (params: unknown) =>
+  vaultReadNote(db, params as Parameters<typeof vaultReadNote>[1]),
+);
+bus.on(RpcMethods.VAULT_WRITE, async (params: unknown) =>
+  vaultWriteNote(db, params as Parameters<typeof vaultWriteNote>[1]),
+);
+bus.on(RpcMethods.VAULT_LIST_TAGS, async () => vaultListTags(db));
+bus.on(RpcMethods.VAULT_DAILY_RECAP, async (params: unknown) =>
+  dailyNoteAppendRecap(db, params as Parameters<typeof dailyNoteAppendRecap>[1]),
+);
+
+// Vault watcher lifecycle — created if a root is already configured on boot.
+let vaultWatcherClose: Awaited<ReturnType<typeof watchVault>> | null = null;
+getVaultRoot(db).then((root) => {
+  if (root) {
+    vaultWatcherClose = watchVault(db, root);
+    bus.notify(RpcMethods.NOTIFY_LOG, {
+      level: "info",
+      message: `vault watcher started at ${root}`,
+    });
+  }
+});
 
 // === Wire stdin ===
 process.stdin.setEncoding("utf8");
