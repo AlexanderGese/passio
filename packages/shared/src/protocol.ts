@@ -86,9 +86,25 @@ export const RpcMethods = {
   VOICE_PTT_STOP: "passio.voice.pttStop",
   SHUTDOWN: "passio.shutdown",
 
+  // Memory / context
+  MEMORY_REMEMBER: "passio.memory.remember",
+  MEMORY_FORGET: "passio.memory.forget",
+  MEMORY_SEARCH: "passio.memory.search",
+  // Todos
+  TODO_ADD: "passio.todo.add",
+  TODO_LIST: "passio.todo.list",
+  TODO_DONE: "passio.todo.done",
+  // Notes
+  NOTE_SAVE: "passio.note.save",
+  NOTE_SEARCH: "passio.note.search",
+  // Intent
+  INTENT_SET: "passio.intent.set",
+  INTENT_GET: "passio.intent.get",
+
   // Sidecar → Rust notifications
   NOTIFY_BUBBLE_STATE: "passio.bubbleState",
   NOTIFY_LOG: "passio.log",
+  NOTIFY_CHAT_CHUNK: "passio.chat.chunk",
 } as const;
 
 export type RpcMethodName = (typeof RpcMethods)[keyof typeof RpcMethods];

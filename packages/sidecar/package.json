@@ -12,10 +12,15 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.103",
     "@passio/shared": "workspace:*",
+    "ai": "^5.0.179",
+    "drizzle-orm": "^0.45.2",
+    "sqlite-vec": "^0.1.6",
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.31.10",
     "typescript": "^5.9.3"
   }
 }

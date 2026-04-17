@@ -116,13 +116,35 @@ impl Sidecar {
         }
 
         tracing::info!(path = %self.bin_path.display(), "spawning sidecar");
-        let mut child = Command::new(&self.bin_path)
-            .stdin(Stdio::piped())
+        let mut cmd = Command::new(&self.bin_path);
+        cmd.stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
-            .context("spawn sidecar")?;
+            .kill_on_drop(true);
+
+        // If a vec0.so sits next to the sidecar binary, tell the child where
+        // to load it from (bun --compile cannot embed native .so files).
+        if let Some(parent) = self.bin_path.parent() {
+            let vec_path = parent.join("vec0.so");
+            if vec_path.exists() {
+                cmd.env("PASSIO_VEC_SO", &vec_path);
+            } else if std::env::var_os("PASSIO_VEC_SO").is_none() {
+                tracing::warn!(
+                    "vec0.so not found near sidecar binary; vector search disabled"
+                );
+            }
+        }
+
+        // Pass through OPENAI keys (keychain integration arrives in the
+        // first-run wizard plan). Prefer PASSIO_* to avoid colliding with
+        // the user's shell env for unrelated OpenAI tooling.
+        for key in ["PASSIO_OPENAI_API_KEY", "OPENAI_API_KEY", "PASSIO_MODEL_STANDARD"] {
+            if let Ok(val) = std::env::var(key) {
+                cmd.env(key, val);
+            }
+        }
+
+        let mut child = cmd.spawn().context("spawn sidecar")?;
 
         let stdin = child.stdin.take().ok_or_else(|| anyhow!("no stdin"))?;
         let stdout = child.stdout.take().ok_or_else(|| anyhow!("no stdout"))?;

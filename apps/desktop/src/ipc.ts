@@ -3,11 +3,23 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { BubbleState } from "@passio/shared";
 
 /**
- * Thin wrapper around Tauri IPC. Keeps typed commands and events in one place
- * so the rest of the HUD never touches `invoke`/`listen` directly.
+ * Thin typed wrapper around Tauri IPC. Keeps commands and events in one
+ * place so the rest of the HUD never touches `invoke`/`listen` directly.
  */
 
-export async function pingSidecar(): Promise<{ pong: true; sidecarVersion: string; uptimeMs: number }> {
+export type Hit = {
+  kind: "fact" | "note" | "event";
+  id: number;
+  content: string;
+  score: number;
+  source: "vec" | "fts" | "both";
+};
+
+export async function pingSidecar(): Promise<{
+  pong: true;
+  sidecarVersion: string;
+  uptimeMs: number;
+}> {
   return invoke("ping_sidecar");
 }
 
@@ -19,12 +31,36 @@ export async function shutdownSidecar(): Promise<void> {
   return invoke("shutdown_sidecar");
 }
 
+export async function chat(
+  prompt: string,
+  conversationId?: number,
+): Promise<{ conversationId: number; text: string }> {
+  return invoke("chat", {
+    prompt,
+    conversationId: conversationId ?? null,
+  });
+}
+
+export async function todoList(
+  filter: "open" | "done" | "all" = "open",
+): Promise<{ todos: Array<{ id: number; text: string; done: boolean }> }> {
+  return invoke("todo_list", { filter });
+}
+
+export async function memorySearch(query: string, limit?: number): Promise<{ hits: Hit[] }> {
+  return invoke("memory_search", { query, limit: limit ?? null });
+}
+
 export function onBubbleState(cb: (state: BubbleState) => void): Promise<UnlistenFn> {
   return listen<BubbleState>("passio://bubble-state", (e) => cb(e.payload));
 }
 
-export function onSidecarLog(cb: (log: { level: string; message: string }) => void): Promise<UnlistenFn> {
-  return listen<{ level: string; message: string }>("passio://sidecar-log", (e) => cb(e.payload));
+export function onSidecarLog(
+  cb: (log: { level: string; message: string }) => void,
+): Promise<UnlistenFn> {
+  return listen<{ level: string; message: string }>("passio://sidecar-log", (e) =>
+    cb(e.payload),
+  );
 }
 
 export function onHotkey(cb: (name: string) => void): Promise<UnlistenFn> {

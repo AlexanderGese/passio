@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
+    "noEmit": true,
     "types": ["vite/client"],
     "jsx": "react-jsx",
     "paths": {
@@ -10,5 +10,5 @@
       "@passio/shared/*": ["../../packages/shared/src/*"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../../packages/shared/src/**/*"]
 }

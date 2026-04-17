@@ -27,3 +27,47 @@ pub async fn request_scan(
 pub async fn shutdown_sidecar(sidecar: State<'_, Sidecar>) -> Result<(), String> {
     sidecar.shutdown().await.map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn chat(
+    sidecar: State<'_, Sidecar>,
+    prompt: String,
+    conversation_id: Option<i64>,
+) -> Result<Value, String> {
+    let params = match conversation_id {
+        Some(id) => json!({ "prompt": prompt, "conversationId": id }),
+        None => json!({ "prompt": prompt }),
+    };
+    sidecar
+        .call("passio.chat", params)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn todo_list(
+    sidecar: State<'_, Sidecar>,
+    filter: Option<String>,
+) -> Result<Value, String> {
+    let params = json!({ "filter": filter.unwrap_or_else(|| "open".into()) });
+    sidecar
+        .call("passio.todo.list", params)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn memory_search(
+    sidecar: State<'_, Sidecar>,
+    query: String,
+    limit: Option<u32>,
+) -> Result<Value, String> {
+    let params = match limit {
+        Some(n) => json!({ "query": query, "limit": n }),
+        None => json!({ "query": query }),
+    };
+    sidecar
+        .call("passio.memory.search", params)
+        .await
+        .map_err(|e| e.to_string())
+}

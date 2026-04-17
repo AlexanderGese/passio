@@ -68,6 +68,9 @@ pub fn run() {
             commands::ping_sidecar,
             commands::request_scan,
             commands::shutdown_sidecar,
+            commands::chat,
+            commands::todo_list,
+            commands::memory_search,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

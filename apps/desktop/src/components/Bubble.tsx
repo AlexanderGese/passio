@@ -2,34 +2,37 @@ import { useEffect } from "react";
 import { onBubbleState, onHotkey, onSidecarLog, pingSidecar } from "../ipc";
 import { PassioAvatar } from "../avatar/PassioAvatar";
 import { usePassioStore } from "../store";
+import { ChatPanel } from "./ChatPanel";
 
 /**
- * The floating passionfruit HUD bubble. Click to expand; drag the body
- * to reposition (handled by CSS drag region). Subscribes to Rust events
- * for bubble state changes and hotkey signals.
+ * Floating passionfruit bubble in the bottom-right of a small always-on-top
+ * window. Clicking toggles the expanded chat panel; global hotkeys are
+ * relayed from Rust and mapped to UI actions.
  */
 export function Bubble() {
-  const { bubble, expanded, setBubble, setExpanded, setSidecarReady, setLastPing } = usePassioStore();
+  const { bubble, expanded, setBubble, setExpanded, toggleExpanded, setSidecarReady, setLastPing } =
+    usePassioStore();
 
   useEffect(() => {
     const unsubs: Promise<() => void>[] = [
       onBubbleState((s) => setBubble(s.state)),
       onSidecarLog((log) => {
         if (log.message.includes("ready")) setSidecarReady(true);
+        if (log.message.includes("shutdown")) setSidecarReady(false);
         console.log(`[sidecar:${log.level}]`, log.message);
       }),
-      onHotkey(async (name) => {
+      onHotkey((name) => {
         if (name === "quick-chat") setExpanded(true);
-        if (name === "toggle-bubble") setExpanded((prev) => !prev as unknown as boolean);
+        if (name === "toggle-bubble") toggleExpanded();
       }),
     ];
     return () => {
       for (const p of unsubs) p.then((fn) => fn()).catch(() => {});
     };
-  }, [setBubble, setExpanded, setSidecarReady]);
+  }, [setBubble, setExpanded, toggleExpanded, setSidecarReady]);
 
   async function handleClick() {
-    setExpanded(!expanded);
+    toggleExpanded();
     try {
       const t0 = performance.now();
       const res = await pingSidecar();
@@ -41,7 +44,15 @@ export function Bubble() {
   }
 
   return (
-    <div className="fixed inset-0 flex items-end justify-end p-3 pointer-events-none">
+    <div className="fixed inset-0 flex flex-col items-end justify-end p-3 pointer-events-none">
+      {expanded && (
+        <div
+          className="no-drag pointer-events-auto mb-2 h-[440px] w-[320px] rounded-2xl border border-passio-skinLight/30 bg-neutral-900/95 p-3 text-neutral-100 shadow-2xl backdrop-blur"
+        >
+          <ChatPanel />
+        </div>
+      )}
+
       <button
         type="button"
         onClick={handleClick}
@@ -50,43 +61,6 @@ export function Bubble() {
       >
         <PassioAvatar state={bubble} sizePx={60} />
       </button>
-
-      {expanded && (
-        <div className="pointer-events-auto no-drag absolute bottom-20 right-3 w-80 rounded-2xl bg-neutral-900/95 p-4 text-sm text-neutral-100 shadow-2xl backdrop-blur border border-passio-skinLight/30">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-medium text-passio-pulp">Passio</span>
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              className="text-neutral-500 hover:text-neutral-200"
-              aria-label="Close"
-            >
-              ×
-            </button>
-          </div>
-          <ExpandedBody />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ExpandedBody() {
-  const { sidecarReady, lastPing } = usePassioStore();
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <span
-          className={`h-2 w-2 rounded-full ${sidecarReady ? "bg-emerald-400" : "bg-neutral-600"}`}
-          aria-hidden
-        />
-        <span className="text-xs text-neutral-400">
-          sidecar {sidecarReady ? "ready" : "cold"} {lastPing !== null && `· ${lastPing}ms`}
-        </span>
-      </div>
-      <p className="text-neutral-400 text-xs">
-        Chat UI ships with the Context Engine plan (week 2). For now, click to ping the sidecar.
-      </p>
     </div>
   );
 }
