@@ -2,6 +2,7 @@
 //! which the HUD subscribes to via the Tauri event bus.
 
 use anyhow::Result;
+use std::process::Command;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -66,6 +67,30 @@ pub fn register_defaults(app: &AppHandle) -> Result<()> {
 
     for b in &bindings {
         tracing::info!(name = b.name, "shortcut registered");
+    }
+
+    // Opportunistic conflict check against Xfce bindings.
+    if let Ok(out) = Command::new("xfconf-query")
+        .args(["-c", "xfce4-keyboard-shortcuts", "-l"])
+        .output()
+    {
+        if out.status.success() {
+            let listing = String::from_utf8_lossy(&out.stdout);
+            let ours: Vec<(&'static str, &'static str)> = vec![
+                ("quick-chat", "<Super>space"),
+                ("toggle-bubble", "<Super>b"),
+                ("force-scan", "<Super><Shift>n"),
+                ("ptt", "<Super><Alt>space"),
+                ("rewrite-selection", "<Super><Shift>r"),
+                ("translate-selection", "<Super><Shift>l"),
+            ];
+            let lower = listing.to_lowercase();
+            for (name, combo) in ours {
+                if lower.contains(&combo.to_lowercase()) {
+                    tracing::warn!(name, combo, "Xfce already binds this combo — consider rebinding in Settings");
+                }
+            }
+        }
     }
 
     Ok(())

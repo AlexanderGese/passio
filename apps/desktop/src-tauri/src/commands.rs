@@ -230,3 +230,30 @@ pub async fn voice_synthesize(
         .await
         .map_err(|e| e.to_string())
 }
+
+// ---- OS keyring ----
+#[tauri::command]
+pub async fn keychain_set(key: String, value: String) -> Result<(), String> {
+    crate::keychain::set_secret(&key, &value).map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn keychain_has(key: String) -> Result<bool, String> {
+    Ok(crate::keychain::get_secret(&key).map_err(|e| e.to_string())?.is_some())
+}
+#[tauri::command]
+pub async fn keychain_delete(key: String) -> Result<(), String> {
+    crate::keychain::delete_secret(&key).map_err(|e| e.to_string())
+}
+
+// ---- First-run helpers ----
+#[tauri::command]
+pub async fn first_run_done(sidecar: State<'_, Sidecar>) -> Result<bool, String> {
+    // We piggy-back on the sidecar's settings table via a small helper RPC.
+    let res: Value = sidecar
+        .call("passio.intent.get", json!({}))
+        .await
+        .unwrap_or(Value::Null);
+    // This is only used to start the sidecar up; the wizard decides
+    // finality by checking whether a key exists in the keyring.
+    Ok(!res.is_null())
+}

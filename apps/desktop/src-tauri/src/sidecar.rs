@@ -1,6 +1,7 @@
 //! Sidecar supervisor: spawn the Bun sidecar on demand, speak JSON-RPC on
 //! stdio, idle-kill after a timeout, auto-respawn on crash (max 3x / 60s).
 
+use crate::keychain::env_from_keyring;
 use crate::paths::{load_secrets, PassioPaths};
 use anyhow::{anyhow, Context, Result};
 use parking_lot::Mutex;
@@ -145,14 +146,17 @@ impl Sidecar {
             }
         }
 
-        // Temporary secrets.env loader — reloaded on every spawn so editing
-        // the file takes effect at the next sidecar cold-start without
-        // restarting the Tauri app.
+        // Preferred: OS keyring. Falls through to the dev secrets.env when
+        // the platform keyring daemon isn't running (Kali with no seahorse).
+        for (key, val) in env_from_keyring() {
+            cmd.env(key, val);
+        }
+
         if let Ok(paths) = PassioPaths::resolve() {
             let secrets_path = paths.secrets_file();
             let secrets = load_secrets(&secrets_path);
             if !secrets.is_empty() {
-                tracing::info!(path = %secrets_path.display(), count = secrets.len(), "loaded secrets.env");
+                tracing::debug!(path = %secrets_path.display(), count = secrets.len(), "loaded secrets.env (dev fallback)");
             }
             for (k, v) in secrets {
                 cmd.env(k, v);

@@ -9,7 +9,7 @@ export type ChatMessage = {
 
 export type Nudge = { message: string; ts: number };
 
-export type PanelTab = "chat" | "goals" | "browser" | "focus";
+export type PanelTab = "chat" | "goals" | "browser" | "focus" | "settings";
 
 interface PassioState {
   bubble: BubbleState["state"];

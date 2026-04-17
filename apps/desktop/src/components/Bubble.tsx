@@ -5,8 +5,12 @@ import { PassioAvatar } from "../avatar/PassioAvatar";
 import { usePassioStore } from "../store";
 import { BrowserPanel } from "./BrowserPanel";
 import { ChatPanel } from "./ChatPanel";
+import { FirstRunWizard } from "./FirstRunWizard";
 import { FocusPanel } from "./FocusPanel";
 import { GoalsPanel } from "./GoalsPanel";
+import { SettingsPanel } from "./SettingsPanel";
+import { keychainApi } from "../ipc";
+import { useState } from "react";
 
 /**
  * Floating passionfruit bubble. Clicking toggles the expanded panel.
@@ -26,6 +30,14 @@ export function Bubble() {
     setLastPing,
     setNudge,
   } = usePassioStore();
+  const [showWizard, setShowWizard] = useState(false);
+
+  useEffect(() => {
+    // First-run detection: if no OpenAI key stored, show the wizard.
+    keychainApi.has("openai").then((has) => {
+      if (!has) setShowWizard(true);
+    }).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     const unsubs: Promise<() => void>[] = [
@@ -77,6 +89,14 @@ export function Bubble() {
     }
   }
 
+  if (showWizard) {
+    return (
+      <div className="fixed inset-0 flex items-end justify-end p-3 pointer-events-none">
+        <FirstRunWizard onDone={() => setShowWizard(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 flex flex-col items-end justify-end p-3 pointer-events-none">
       {nudge && (
@@ -99,6 +119,7 @@ export function Bubble() {
             {tab === "goals" && <GoalsPanel />}
             {tab === "browser" && <BrowserPanel />}
             {tab === "focus" && <FocusPanel />}
+            {tab === "settings" && <SettingsPanel onRunWizard={() => setShowWizard(true)} />}
           </div>
         </div>
       )}
@@ -119,7 +140,7 @@ function Tabs() {
   const { tab, setTab } = usePassioStore();
   return (
     <div className="flex gap-1 border-b border-white/5 pb-1 text-xs">
-      {(["chat", "goals", "browser", "focus"] as const).map((t) => (
+      {(["chat", "goals", "browser", "focus", "settings"] as const).map((t) => (
         <button
           key={t}
           type="button"

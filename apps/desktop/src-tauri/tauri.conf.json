@@ -61,5 +61,12 @@
       }
     }
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://passio.local/updates/{{target}}/{{current_version}}"
+      ],
+      "pubkey": "DEV_PUBLIC_KEY_REPLACE_WHEN_SIGNING"
+    }
+  }
 }

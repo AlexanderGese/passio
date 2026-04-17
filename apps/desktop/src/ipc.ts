@@ -164,6 +164,12 @@ export function onSelectionResult(cb: (r: SelectionResult) => void): Promise<Unl
   return listen<SelectionResult>("passio://selection-result", (e) => cb(e.payload));
 }
 
+export const keychainApi = {
+  set: (key: string, value: string) => invoke<void>("keychain_set", { key, value }),
+  has: (key: string) => invoke<boolean>("keychain_has", { key }),
+  delete: (key: string) => invoke<void>("keychain_delete", { key }),
+};
+
 export const voiceApi = {
   transcribe: (input: { audio_base64: string; mime_type?: string; language?: string }) =>
     invoke<{ text: string }>("voice_transcribe", {
