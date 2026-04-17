@@ -127,19 +127,26 @@ This keeps the existing public API untouched; `withGate` uses `requestOutbound` 
 ```
 // packages/sidecar/src/bridge/gate.ts (NEW)
 
+export interface GateDeps {
+  db: Db;
+  bus: RpcBus;               // the singleton from main.ts, for outbound requests
+  countdownMs: () => number; // reads current countdown setting
+}
+
 export async function withGate<T>(
-  db: Db,
-  bridge: BridgeServer,
+  deps: GateDeps,
   tool: "click"|"type"|"navigate"|"new_tab"|"close_tab"|"scroll",
   params: unknown,
   fetchTargetDomain: () => Promise<string>,
   doTool: () => Promise<T>,
 ): Promise<T> {
   const domain = await fetchTargetDomain();
-  const policy = lookupPolicy(db, domain);
-  if (policy === "observe_only") throw new Error(`policy observe_only blocks ${tool} on ${domain}`);
+  const policy = lookupPolicy(deps.db, domain);
+  if (policy === "observe_only") {
+    throw new Error(`policy observe_only blocks ${tool} on ${domain}`);
+  }
 
-  const blocked = matchBlocklist(db, tool, params);
+  const blocked = matchBlocklist(deps.db, tool, params);
   const gateReason = blocked
     ? `blocklist:${blocked.pattern}:${blocked.reason}`
     : policy === "ask_first"
@@ -148,13 +155,18 @@ export async function withGate<T>(
 
   if (!gateReason) return doTool(); // full_auto, clean
 
-  const allowed = await requestGate(bridge.__outboundBus__, { tool, params, domain, reason: gateReason });
+  // Emit outbound request; wait for Rust → sidecar gate.resolve RPC.
+  const id = crypto.randomUUID();
+  deps.bus.notify("passio.gate.request", { id, tool, params, domain, reason: gateReason });
+  const allowed = await deps.bus.awaitGateResolve(id, deps.countdownMs() + 2000);
   if (!allowed) throw new Error(`gate: ${tool} on ${domain} rejected`);
   return doTool();
 }
 ```
 
-All 6 mutating tool entries in `tools/browser.ts` wrap through this before their existing `auditCall`. `auditCall` is still written in all cases (allow/reject) — the rejection path adds `ok: false` so the audit row captures user intent.
+`RpcBus` grows a small `awaitGateResolve(id, timeoutMs)` helper that returns a Promise resolved by the sidecar-side handler registered for `passio.gate.resolve`. This keeps gate coordination internal to `RpcBus` (no global singletons) and preserves the existing JSON-RPC plumbing. The outbound map from §7 is the same mechanism `awaitGateResolve` uses.
+
+All 6 mutating tool entries in `tools/browser.ts` wrap through `withGate` before their existing `auditCall`. `auditCall` is still written in all cases (allow/reject) — the rejection path adds `ok: false` so the audit row captures user intent.
 
 ## 9. Rust core
 
