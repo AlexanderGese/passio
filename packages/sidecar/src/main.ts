@@ -39,6 +39,7 @@ import {
 } from "./tools/analytics.js";
 import { setCalendarSources, upcomingEvents } from "./tools/calendar.js";
 import { macroDelete, macroList, macroRun, macroSave } from "./tools/macros.js";
+import { automate } from "./tools/automation.js";
 import { research } from "./tools/research.js";
 import { sandboxRun } from "./tools/sandbox.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
@@ -228,7 +229,10 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   return { ok: true };
 });
 
-// --- Research + Sandbox ---
+// --- Automation + Research + Sandbox ---
+bus.on(RpcMethods.AUTOMATE, async (p: unknown) =>
+  automate(db, { bridge, bus }, p as Parameters<typeof automate>[2]),
+);
 bus.on(RpcMethods.RESEARCH, async (p: unknown) =>
   research(db, { bridge, bus }, p as Parameters<typeof research>[2]),
 );
