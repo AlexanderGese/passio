@@ -53,6 +53,22 @@ On first launch the wizard walks you through API key → vault → first goal �
 
 ## Status
 
+✅ **v2.2.0** — v1 + v2 all 18 weeks complete.
+
+**v2 additions (weeks 9–18):**
+- W9 safety rails (per-hostname policy, dangerous-action blocklist, countdown gate)
+- W10 persona + speech bubble + rebindable keybinds
+- W11 Gmail via [@devalxui/kova-mail](https://www.npmjs.com/package/@devalxui/kova-mail)
+- W12 calendar (.ics), RSS feeds, open-meteo weather in morning briefing
+- W13 workflow macros (save/list/replay gated steps)
+- W14 multi-step research agent (cited) + Vercel Sandbox stub
+- W15 task automation (reasoning-model planner) + 4-tier model router
+- W16 local whisper.cpp STT + Ollama integration for economy tier
+- W17 `pass`-backed secrets vault + SQLCipher hook + WiFi-hashed location
+- W18 CI matrix (linux / macOS / Windows) + tauri-plugin-updater wired
+
+## v1 baseline
+
 ✅ **v1.0.0-alpha** — all 8 weeks complete.
 - Foundation: Tauri 2 + Bun sidecar + HUD bubble + IPC
 - Context Engine: Drizzle + sqlite-vec + FTS5 + hybrid retrieval + AI SDK agent
