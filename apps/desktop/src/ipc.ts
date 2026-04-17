@@ -164,6 +164,22 @@ export function onSelectionResult(cb: (r: SelectionResult) => void): Promise<Unl
   return listen<SelectionResult>("passio://selection-result", (e) => cb(e.payload));
 }
 
+export type Persona = {
+  name: string;
+  pronouns: string;
+  voice: "alloy" | "echo" | "fable" | "nova" | "onyx" | "shimmer";
+};
+export const personaApi = {
+  get: (): Promise<Persona> => invoke<Persona>("persona_get"),
+  set: (patch: Partial<Persona>): Promise<Persona> => invoke<Persona>("persona_set", { patch }),
+};
+
+export type Keybinds = Record<string, string>;
+export const keybindsApi = {
+  get: (): Promise<Keybinds> => invoke<Keybinds>("keybinds_get"),
+  set: (patch: Keybinds): Promise<Keybinds> => invoke<Keybinds>("keybinds_set", { patch }),
+};
+
 export const keychainApi = {
   set: (key: string, value: string) => invoke<void>("keychain_set", { key, value }),
   has: (key: string) => invoke<boolean>("keychain_has", { key }),

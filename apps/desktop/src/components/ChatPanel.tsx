@@ -156,7 +156,7 @@ export function ChatPanel() {
   return (
     <div className="flex h-full flex-col text-sm">
       <header className="mb-2 flex items-center justify-between">
-        <span className="font-medium text-passio-pulp">Passio</span>
+        <span className="font-medium text-passio-pulp">{usePassioStore.getState().assistantName}</span>
         <div className="flex items-center gap-2 text-xs text-neutral-500">
           {messages.length > 0 && (
             <button

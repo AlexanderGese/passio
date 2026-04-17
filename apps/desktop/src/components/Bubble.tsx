@@ -9,8 +9,9 @@ import { FirstRunWizard } from "./FirstRunWizard";
 import { FocusPanel } from "./FocusPanel";
 import { GoalsPanel } from "./GoalsPanel";
 import { SettingsPanel } from "./SettingsPanel";
-import { keychainApi } from "../ipc";
+import { keychainApi, personaApi } from "../ipc";
 import { useState } from "react";
+import { SpeechBubble } from "./SpeechBubble";
 
 /**
  * Floating passionfruit bubble. Clicking toggles the expanded panel.
@@ -22,6 +23,8 @@ export function Bubble() {
     expanded,
     tab,
     nudge,
+    speech,
+    assistantName,
     setBubble,
     setExpanded,
     toggleExpanded,
@@ -29,6 +32,8 @@ export function Bubble() {
     setSidecarReady,
     setLastPing,
     setNudge,
+    setSpeech,
+    setAssistantName,
   } = usePassioStore();
   const [showWizard, setShowWizard] = useState(false);
 
@@ -37,7 +42,9 @@ export function Bubble() {
     keychainApi.has("openai").then((has) => {
       if (!has) setShowWizard(true);
     }).catch(() => undefined);
-  }, []);
+    // Load persona
+    personaApi.get().then((p) => setAssistantName(p.name)).catch(() => undefined);
+  }, [setAssistantName]);
 
   useEffect(() => {
     const unsubs: Promise<() => void>[] = [
@@ -66,9 +73,9 @@ export function Bubble() {
       }),
       onScanResult((r) => {
         if (r.decision !== "quiet" && r.message) {
-          setNudge({ message: r.message, ts: Date.now() });
-          setBubble("alert");
-          setTimeout(() => setBubble("idle"), 2_000);
+          setSpeech({ message: r.message, ts: Date.now(), ttlMs: 8_000 });
+          setBubble("talking");
+          setTimeout(() => setBubble("idle"), 2_200);
         }
       }),
     ];
@@ -99,6 +106,12 @@ export function Bubble() {
 
   return (
     <div className="fixed inset-0 flex flex-col items-end justify-end p-3 pointer-events-none">
+      <SpeechBubble
+        message={speech?.message ?? null}
+        ttlMs={speech?.ttlMs ?? 6000}
+        name={assistantName}
+        onDone={() => setSpeech(null)}
+      />
       {nudge && (
         <div
           className="pointer-events-auto no-drag mb-2 max-w-[320px] rounded-2xl border border-amber-500/30 bg-amber-900/70 px-3 py-2 text-[12px] text-amber-100 shadow-2xl backdrop-blur"

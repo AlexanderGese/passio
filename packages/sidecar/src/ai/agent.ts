@@ -6,6 +6,7 @@ import type { BridgeServer } from "../bridge/server.js";
 import type { RpcBus } from "../rpc.js";
 import * as browser from "../tools/browser.js";
 import { explainSelection, savePage, summarizePage } from "../tools/browser_compound.js";
+import { getPersona } from "../tools/persona.js";
 import { conversations, messages } from "../db/schema.js";
 import { retrieve } from "../context/retrieve.js";
 import {
@@ -44,7 +45,7 @@ import {
 
 type Emitter = (method: string, params: unknown) => void;
 
-const SYSTEM_PROMPT = `You are Passio, a local, passionfruit-shaped desktop AI assistant.
+const BASE_SYSTEM_PROMPT = `You are {NAME}, a local, passionfruit-shaped desktop AI assistant.
 
 Style: terse, warm, direct. You know the user well through retrieved memory.
 Your output is shown in a small floating bubble, so keep replies short (1–4 sentences)
@@ -105,9 +106,11 @@ export async function chat(
     : "Retrieved context: (none yet — this is a cold memory)";
 
   const tools = buildTools(db, bridge, bus);
+  const persona = getPersona(db);
+  const sysPrompt = BASE_SYSTEM_PROMPT.replaceAll("{NAME}", persona.name);
   const result = await generateText({
     model: openai()(modelName()),
-    system: `${SYSTEM_PROMPT}\n\n${contextBlock}`,
+    system: `${sysPrompt}\n\n${contextBlock}`,
     prompt: input.prompt,
     tools,
     stopWhen: stepCountIs(6),

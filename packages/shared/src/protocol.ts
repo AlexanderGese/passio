@@ -140,6 +140,11 @@ export const RpcMethods = {
   // Text transforms
   REWRITE: "passio.rewrite",
   TRANSLATE: "passio.translate",
+  // Personalisation
+  PERSONA_GET: "passio.persona.get",
+  PERSONA_SET: "passio.persona.set",
+  KEYBINDS_GET: "passio.keybinds.get",
+  KEYBINDS_SET: "passio.keybinds.set",
   // Safety rails — policy, blocklist, gate
   POLICY_GET: "passio.policy.get",
   POLICY_SET: "passio.policy.set",

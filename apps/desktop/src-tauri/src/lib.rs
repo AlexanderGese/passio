@@ -168,6 +168,10 @@ pub fn run() {
             commands::policy_set_countdown,
             commands::blocklist_set,
             commands::gate_resolve,
+            commands::persona_get,
+            commands::persona_set,
+            commands::keybinds_get,
+            commands::keybinds_set,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

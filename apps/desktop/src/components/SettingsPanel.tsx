@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { keychainApi } from "../ipc";
+import { type Keybinds, keybindsApi, keychainApi, type Persona, personaApi } from "../ipc";
+import { usePassioStore } from "../store";
 
 /**
  * Settings panel — v1 surface for what actually matters for a fresh install.
@@ -44,6 +45,8 @@ export function SettingsPanel({ onRunWizard }: { onRunWizard: () => void }) {
 
   return (
     <div className="flex h-full flex-col gap-2 overflow-y-auto text-xs">
+      <PersonaSection />
+      <KeybindsSection />
       <Section label="API keys (OS keyring)">
         <KeyRow
           label="OpenAI"
@@ -167,5 +170,159 @@ function KeyRow({
         )}
       </div>
     </div>
+  );
+}
+
+function PersonaSection() {
+  const { setAssistantName } = usePassioStore();
+  const [persona, setPersona] = useState<Persona | null>(null);
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    personaApi.get().then((p) => {
+      setPersona(p);
+      setName(p.name);
+    });
+  }, []);
+
+  async function save() {
+    if (!name.trim() || !persona) return;
+    const next = await personaApi.set({ name: name.trim() });
+    setPersona(next);
+    setAssistantName(next.name);
+    setStatus("saved");
+    setTimeout(() => setStatus(null), 1500);
+  }
+
+  async function changeVoice(voice: Persona["voice"]) {
+    if (!persona) return;
+    const next = await personaApi.set({ voice });
+    setPersona(next);
+  }
+
+  if (!persona) return null;
+
+  return (
+    <Section label="Your Passio">
+      <label className="block">
+        <span className="text-[10px] text-neutral-500">Name</span>
+        <div className="mt-0.5 flex gap-1">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Passio"
+            className="no-drag flex-1 rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={save}
+            disabled={!name.trim() || name === persona.name}
+            className="rounded-md bg-passio-pulp/80 px-2 text-black hover:bg-passio-pulp disabled:opacity-40"
+          >
+            save
+          </button>
+        </div>
+        {status && <p className="mt-1 text-[11px] text-emerald-300">{status}</p>}
+      </label>
+      <label className="mt-2 block">
+        <span className="text-[10px] text-neutral-500">TTS voice</span>
+        <select
+          value={persona.voice}
+          onChange={(e) => changeVoice(e.target.value as Persona["voice"])}
+          className="no-drag mt-0.5 w-full rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+        >
+          {(["alloy", "echo", "fable", "nova", "onyx", "shimmer"] as const).map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </label>
+    </Section>
+  );
+}
+
+function KeybindsSection() {
+  const [binds, setBinds] = useState<Keybinds | null>(null);
+  const [draft, setDraft] = useState<Keybinds>({});
+  const [capturing, setCapturing] = useState<string | null>(null);
+
+  useEffect(() => {
+    keybindsApi.get().then((b) => {
+      setBinds(b);
+      setDraft(b);
+    });
+  }, []);
+
+  function startCapture(action: string) {
+    setCapturing(action);
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const mods: string[] = [];
+      if (e.metaKey) mods.push("Super");
+      if (e.ctrlKey) mods.push("Ctrl");
+      if (e.shiftKey) mods.push("Shift");
+      if (e.altKey) mods.push("Alt");
+      const keyRaw = e.key;
+      if (["Meta", "Control", "Shift", "Alt"].includes(keyRaw)) return; // ignore pure modifiers
+      const key = keyRaw.length === 1 ? keyRaw.toUpperCase() : keyRaw;
+      const accel = [...mods, key === " " ? "Space" : key].join("+");
+      setDraft((d) => ({ ...d, [action]: accel }));
+      setCapturing(null);
+      window.removeEventListener("keydown", handler, true);
+    };
+    window.addEventListener("keydown", handler, true);
+  }
+
+  async function save() {
+    if (!binds) return;
+    const patch: Keybinds = {};
+    for (const [k, v] of Object.entries(draft)) {
+      if (binds[k] !== v) patch[k] = v;
+    }
+    if (Object.keys(patch).length === 0) return;
+    const next = await keybindsApi.set(patch);
+    setBinds(next);
+    setDraft(next);
+  }
+
+  if (!binds) return null;
+  const dirty = Object.keys(binds).some((k) => binds[k] !== draft[k]);
+
+  return (
+    <Section label="Keybinds">
+      <ul className="space-y-1">
+        {Object.entries(draft).map(([action, accel]) => (
+          <li key={action} className="flex items-center justify-between gap-2">
+            <span className="text-neutral-300">{action}</span>
+            <button
+              type="button"
+              onClick={() => startCapture(action)}
+              className={`no-drag rounded-md border px-2 py-0.5 text-[11px] font-mono ${
+                capturing === action
+                  ? "border-passio-pulp bg-passio-pulp/20 text-passio-pulp"
+                  : "border-white/10 bg-black/40 hover:border-passio-pulp/40"
+              }`}
+            >
+              {capturing === action ? "press keys…" : accel}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {dirty && (
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[10px] text-amber-300">restart Passio to apply new bindings</span>
+          <button
+            type="button"
+            onClick={save}
+            className="rounded-md bg-passio-pulp/80 px-2 py-0.5 text-black hover:bg-passio-pulp"
+          >
+            save
+          </button>
+        </div>
+      )}
+    </Section>
   );
 }

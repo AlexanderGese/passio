@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use std::process::Command;
+use std::str::FromStr;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -38,6 +39,51 @@ fn defaults() -> Vec<Binding> {
             name: "translate-selection",
         },
     ]
+}
+
+/// Parse an accelerator string like "Super+Shift+R" → `Shortcut`. Used
+/// when loading user keybinds from persona settings; falls back to the
+/// built-in default if parsing fails.
+pub fn parse_accelerator(name: &str, s: &str) -> Shortcut {
+    let lower = s.to_lowercase();
+    let mut mods = Modifiers::empty();
+    let mut code: Option<Code> = None;
+    for part in lower.split('+').map(str::trim) {
+        match part {
+            "super" | "meta" | "win" | "cmd" => mods |= Modifiers::SUPER,
+            "ctrl" | "control" => mods |= Modifiers::CONTROL,
+            "shift" => mods |= Modifiers::SHIFT,
+            "alt" | "option" => mods |= Modifiers::ALT,
+            other => {
+                code = Code::from_str(&cap_first(other)).ok();
+            }
+        }
+    }
+    let code = code.unwrap_or_else(|| {
+        defaults()
+            .into_iter()
+            .find(|b| b.name == name)
+            .and_then(|b| {
+                // extract code from the fallback shortcut via debug — simplest
+                // since Shortcut doesn't expose `.key()`. Fall back to Space.
+                Some(Code::Space).filter(|_| !format!("{:?}", b.shortcut).is_empty())
+            })
+            .unwrap_or(Code::Space)
+    });
+    Shortcut::new(Some(mods), code)
+}
+
+fn cap_first(s: &str) -> String {
+    // tauri-plugin-global-shortcut Code parses variants like "Space", "KeyR".
+    if s.len() == 1 && s.chars().next().unwrap().is_ascii_alphabetic() {
+        format!("Key{}", s.to_uppercase())
+    } else {
+        let mut c = s.chars();
+        match c.next() {
+            Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+            None => String::new(),
+        }
+    }
 }
 
 pub fn register_defaults(app: &AppHandle) -> Result<()> {

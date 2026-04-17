@@ -8,6 +8,7 @@ export type ChatMessage = {
 };
 
 export type Nudge = { message: string; ts: number };
+export type Speech = { message: string; ts: number; ttlMs: number };
 
 export type PanelTab = "chat" | "goals" | "browser" | "focus" | "settings";
 
@@ -21,6 +22,8 @@ interface PassioState {
   messages: ChatMessage[];
   isThinking: boolean;
   nudge: Nudge | null;
+  speech: Speech | null;
+  assistantName: string;
   setBubble: (s: BubbleState["state"]) => void;
   setExpanded: (open: boolean) => void;
   toggleExpanded: () => void;
@@ -31,6 +34,8 @@ interface PassioState {
   appendMessage: (m: ChatMessage) => void;
   setIsThinking: (v: boolean) => void;
   setNudge: (n: Nudge | null) => void;
+  setSpeech: (s: Speech | null) => void;
+  setAssistantName: (n: string) => void;
   resetConversation: () => void;
 }
 
@@ -44,6 +49,8 @@ export const usePassioStore = create<PassioState>((set) => ({
   messages: [],
   isThinking: false,
   nudge: null,
+  speech: null,
+  assistantName: "Passio",
   setBubble: (bubble) => set({ bubble }),
   setExpanded: (expanded) => set({ expanded }),
   toggleExpanded: () => set((s) => ({ expanded: !s.expanded })),
@@ -54,5 +61,7 @@ export const usePassioStore = create<PassioState>((set) => ({
   appendMessage: (m) => set((s) => ({ messages: [...s.messages, m] })),
   setIsThinking: (isThinking) => set({ isThinking }),
   setNudge: (nudge) => set({ nudge }),
+  setSpeech: (speech) => set({ speech }),
+  setAssistantName: (assistantName) => set({ assistantName }),
   resetConversation: () => set({ messages: [], conversationId: null }),
 }));

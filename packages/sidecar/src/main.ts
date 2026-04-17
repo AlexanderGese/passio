@@ -38,6 +38,7 @@ import {
   timeBlockCreate,
 } from "./tools/analytics.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
+import { getKeybinds, getPersona, setKeybinds, setPersona } from "./tools/persona.js";
 import { fileSearch, indexFiles } from "./tools/files.js";
 import { edgeAdd, entityUpsert, graphQuery } from "./tools/graph.js";
 import {
@@ -219,6 +220,16 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   bus.resolveGate(id, allowed);
   return { ok: true };
 });
+
+// --- Personalisation ---
+bus.on(RpcMethods.PERSONA_GET, async () => getPersona(db));
+bus.on(RpcMethods.PERSONA_SET, async (p: unknown) =>
+  setPersona(db, p as Parameters<typeof setPersona>[1]),
+);
+bus.on(RpcMethods.KEYBINDS_GET, async () => getKeybinds(db));
+bus.on(RpcMethods.KEYBINDS_SET, async (p: unknown) =>
+  setKeybinds(db, p as Parameters<typeof setKeybinds>[1]),
+);
 
 // Direct memory / todo / note / intent RPCs (for the HUD to call without
 // going through the LLM — cheap, deterministic, local).

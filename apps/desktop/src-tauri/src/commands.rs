@@ -302,6 +302,31 @@ pub async fn gate_resolve(
     Ok(())
 }
 
+// ---- Personalisation ----
+
+#[tauri::command]
+pub async fn persona_get(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.persona.get", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn persona_set(
+    sidecar: State<'_, Sidecar>,
+    patch: Value,
+) -> Result<Value, String> {
+    sidecar.call("passio.persona.set", patch).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn keybinds_get(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.keybinds.get", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn keybinds_set(
+    sidecar: State<'_, Sidecar>,
+    patch: Value,
+) -> Result<Value, String> {
+    sidecar.call("passio.keybinds.set", patch).await.map_err(|e| e.to_string())
+}
+
 // ---- First-run helpers ----
 #[tauri::command]
 pub async fn first_run_done(sidecar: State<'_, Sidecar>) -> Result<bool, String> {
