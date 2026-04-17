@@ -140,6 +140,9 @@ export const RpcMethods = {
   // Text transforms
   REWRITE: "passio.rewrite",
   TRANSLATE: "passio.translate",
+  // Research / Sandbox
+  RESEARCH: "passio.research",
+  SANDBOX_RUN: "passio.sandbox.run",
   // Macros
   MACRO_SAVE: "passio.macro.save",
   MACRO_LIST: "passio.macro.list",

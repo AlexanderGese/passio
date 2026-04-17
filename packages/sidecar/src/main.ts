@@ -39,6 +39,8 @@ import {
 } from "./tools/analytics.js";
 import { setCalendarSources, upcomingEvents } from "./tools/calendar.js";
 import { macroDelete, macroList, macroRun, macroSave } from "./tools/macros.js";
+import { research } from "./tools/research.js";
+import { sandboxRun } from "./tools/sandbox.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
 import { mailInbox, mailSearch, mailSend, mailUnread } from "./tools/mail.js";
 import { latestItems, setFeeds } from "./tools/rss.js";
@@ -225,6 +227,14 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   bus.resolveGate(id, allowed);
   return { ok: true };
 });
+
+// --- Research + Sandbox ---
+bus.on(RpcMethods.RESEARCH, async (p: unknown) =>
+  research(db, { bridge, bus }, p as Parameters<typeof research>[2]),
+);
+bus.on(RpcMethods.SANDBOX_RUN, async (p: unknown) =>
+  sandboxRun(p as Parameters<typeof sandboxRun>[0]),
+);
 
 // --- Workflow macros ---
 bus.on(RpcMethods.MACRO_SAVE, async (p: unknown) =>
