@@ -49,7 +49,34 @@ impl Scheduler {
                 if let Err(e) = run_weekly_reviews(&sidecar).await {
                     tracing::warn!(error = %e, "weekly review failed");
                 }
-                // tiny pause so the next `seconds_until_next_sunday_19` rolls forward
+                tokio::time::sleep(Duration::from_secs(120)).await;
+            }
+        });
+
+        // Daily morning briefing (08:00 local)
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            loop {
+                let wait = seconds_until_next_local_hour(8);
+                tokio::time::sleep(Duration::from_secs(wait.max(60))).await;
+                tracing::info!("scheduler tick: morning briefing");
+                if let Err(e) = sidecar.call("passio.morningBriefing", json!({})).await {
+                    tracing::warn!(error = %e, "morning briefing failed");
+                }
+                tokio::time::sleep(Duration::from_secs(120)).await;
+            }
+        });
+
+        // Daily recap (20:00 local)
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            loop {
+                let wait = seconds_until_next_local_hour(20);
+                tokio::time::sleep(Duration::from_secs(wait.max(60))).await;
+                tracing::info!("scheduler tick: daily recap");
+                if let Err(e) = sidecar.call("passio.dailyRecap", json!({})).await {
+                    tracing::warn!(error = %e, "daily recap failed");
+                }
                 tokio::time::sleep(Duration::from_secs(120)).await;
             }
         });
@@ -58,6 +85,20 @@ impl Scheduler {
     pub async fn set_interval_minutes(&self, m: u64) {
         *self.interval_min.lock().await = m.max(5);
     }
+}
+
+fn seconds_until_next_local_hour(hour: u32) -> u64 {
+    let now = Local::now();
+    let today_target = Local
+        .with_ymd_and_hms(now.year(), now.month(), now.day(), hour, 0, 0)
+        .single();
+    let target = match today_target {
+        Some(t) if t > now => t,
+        _ => now + chrono::Duration::days(1) - chrono::Duration::hours(now.hour() as i64)
+            + chrono::Duration::hours(hour as i64),
+    };
+    let diff = (target - now).num_seconds().max(60);
+    diff as u64
 }
 
 fn seconds_until_next_sunday_19() -> u64 {

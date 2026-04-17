@@ -13,10 +13,29 @@
  */
 import { RpcMethods, type PingResult } from "@passio/shared";
 import { chat } from "./ai/agent.js";
+import { dailyRecap, morningBriefing } from "./ai/recap.js";
+import { scan } from "./ai/scan.js";
 import { startBridge } from "./bridge/server.js";
 import { openDb } from "./db/client.js";
 import { IdleWatchdog } from "./idle.js";
 import { RpcBus } from "./rpc.js";
+import {
+  cyclePack,
+  focusStart,
+  focusStop,
+  getActivePack,
+  getDistractingDomains,
+  getDndUntil,
+  getFocusState,
+  getProactiveInterval,
+  getProactiveMode,
+  setActivePack,
+  setDistractingDomains,
+  setDnd,
+  setProactiveInterval,
+  setProactiveMode,
+  toggleDnd,
+} from "./tools/focus.js";
 import {
   goalCreate,
   goalDecompose,
@@ -51,7 +70,7 @@ import {
 } from "./vault/tools.js";
 import { watchVault } from "./vault/watcher.js";
 
-const SIDECAR_VERSION = "0.4.0";
+const SIDECAR_VERSION = "0.5.0";
 const DEFAULT_IDLE_MS = Number(process.env.PASSIO_IDLE_MS ?? 90_000);
 
 const bus = new RpcBus();
@@ -103,10 +122,25 @@ bus.on(RpcMethods.SHUTDOWN, async () => {
   return { ok: true };
 });
 
-bus.on(RpcMethods.SCAN, async () => ({
-  decision: "quiet",
-  reason: "scan pipeline not yet implemented (week 5)",
-}));
+bus.on(RpcMethods.SCAN, async (params: unknown) => {
+  const p = (params ?? {}) as { reason?: "cron" | "manual" | "force" };
+  const decision = await scan(db, bridge, {
+    reason: p.reason ?? "manual",
+    mode: getProactiveMode(db),
+    pack: getActivePack(db),
+    dndUntil: getDndUntil(db),
+    distractingDomains: getDistractingDomains(db),
+  });
+  // Surface non-quiet decisions to the HUD as bubble state updates.
+  if (decision.decision !== "quiet") {
+    bus.notify(RpcMethods.NOTIFY_BUBBLE_STATE, {
+      state: "alert",
+      message: decision.message ?? decision.reason,
+      badge: 1,
+    });
+  }
+  return decision;
+});
 
 bus.on(RpcMethods.CHAT, async (params: unknown) => {
   const { prompt, conversationId } = params as {
@@ -225,6 +259,58 @@ bus.on(RpcMethods.VAULT_LIST_TAGS, async () => vaultListTags(db));
 bus.on(RpcMethods.VAULT_DAILY_RECAP, async (params: unknown) =>
   dailyNoteAppendRecap(db, params as Parameters<typeof dailyNoteAppendRecap>[1]),
 );
+
+// --- Focus / packs / DND / proactive / recap ---
+bus.on(RpcMethods.FOCUS_GET_STATE, async () => getFocusState(db));
+bus.on(RpcMethods.FOCUS_START, async (params: unknown) => {
+  const { duration_min } = (params ?? {}) as { duration_min?: number };
+  return focusStart(db, duration_min ?? 25);
+});
+bus.on(RpcMethods.FOCUS_STOP, async () => focusStop(db));
+
+bus.on(RpcMethods.PACK_GET, async () => ({ pack: getActivePack(db) }));
+bus.on(RpcMethods.PACK_SET, async (params: unknown) => {
+  const { pack } = params as { pack: "work" | "study" | "chill" | "custom" };
+  return setActivePack(db, pack);
+});
+bus.on(RpcMethods.PACK_CYCLE, async () => cyclePack(db));
+
+bus.on(RpcMethods.DND_GET, async () => ({ until: getDndUntil(db) }));
+bus.on(RpcMethods.DND_SET, async (params: unknown) => {
+  const p = params as { minutes: number | null };
+  return setDnd(db, p);
+});
+bus.on(RpcMethods.DND_TOGGLE, async () => toggleDnd(db));
+
+bus.on(RpcMethods.PROACTIVE_GET, async () => ({
+  mode: getProactiveMode(db),
+  interval_min: getProactiveInterval(db),
+}));
+bus.on(RpcMethods.PROACTIVE_SET, async (params: unknown) => {
+  const p = params as {
+    mode?: "check-in" | "active-assist" | "summary-decide";
+    interval_min?: number;
+  };
+  if (p.mode) setProactiveMode(db, p.mode);
+  if (typeof p.interval_min === "number") setProactiveInterval(db, p.interval_min);
+  return {
+    ok: true,
+    mode: getProactiveMode(db),
+    interval_min: getProactiveInterval(db),
+  };
+});
+
+bus.on(RpcMethods.DISTRACTING_GET, async () => ({ domains: getDistractingDomains(db) }));
+bus.on(RpcMethods.DISTRACTING_SET, async (params: unknown) => {
+  const { domains } = params as { domains: string[] };
+  return setDistractingDomains(db, domains);
+});
+
+bus.on(RpcMethods.DAILY_RECAP, async (params: unknown) => {
+  const p = (params ?? {}) as { date?: string };
+  return dailyRecap(db, p);
+});
+bus.on(RpcMethods.MORNING_BRIEFING, async () => morningBriefing(db));
 
 // --- Browser bridge ---
 bus.on(RpcMethods.BRIDGE_STATUS, async () => ({

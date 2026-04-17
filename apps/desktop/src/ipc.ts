@@ -115,6 +115,50 @@ export async function summarizePage(
   return invoke("summarize_page", { style });
 }
 
+export type Pack = "work" | "study" | "chill" | "custom";
+export type ProactiveMode = "check-in" | "active-assist" | "summary-decide";
+export type FocusState = {
+  active: boolean;
+  remainingSeconds: number;
+  durationMin: number;
+  startedAt: string | null;
+};
+
+export const focusApi = {
+  state: () => invoke<FocusState>("focus_state"),
+  start: (duration_min = 25) => invoke<FocusState>("focus_start", { durationMin: duration_min }),
+  stop: () => invoke<FocusState>("focus_stop"),
+};
+export const packApi = {
+  get: () => invoke<{ pack: Pack }>("pack_get"),
+  set: (pack: Pack) => invoke<{ ok: true; pack: Pack }>("pack_set", { pack }),
+  cycle: () => invoke<{ pack: Pack }>("pack_cycle"),
+};
+export const dndApi = {
+  get: () => invoke<{ until: string | null }>("dnd_get"),
+  toggle: () => invoke<{ until: string | null }>("dnd_toggle"),
+  set: (minutes: number | null) => invoke<{ until: string | null }>("dnd_set", { minutes }),
+};
+export const proactiveApi = {
+  get: () => invoke<{ mode: ProactiveMode; interval_min: number }>("proactive_get"),
+  set: (input: { mode?: ProactiveMode; interval_min?: number }) =>
+    invoke<{ ok: true; mode: ProactiveMode; interval_min: number }>("proactive_set", input),
+};
+export const briefingApi = {
+  morning: () => invoke<{ briefing: string }>("morning_briefing"),
+  recap: () => invoke<{ dateStr: string; recap: string }>("daily_recap"),
+};
+
+export type ScanResult = {
+  decision: "quiet" | "nudge" | "act";
+  reason: string;
+  message?: string;
+  proposed_tool?: string;
+};
+export function onScanResult(cb: (r: ScanResult) => void): Promise<UnlistenFn> {
+  return listen<ScanResult>("passio://scan-result", (e) => cb(e.payload));
+}
+
 export function onBubbleState(cb: (state: BubbleState) => void): Promise<UnlistenFn> {
   return listen<BubbleState>("passio://bubble-state", (e) => cb(e.payload));
 }

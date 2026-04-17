@@ -125,3 +125,76 @@ pub async fn summarize_page(
         .await
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn focus_state(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.focus.getState", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn focus_start(
+    sidecar: State<'_, Sidecar>,
+    duration_min: Option<u32>,
+) -> Result<Value, String> {
+    let params = json!({ "duration_min": duration_min.unwrap_or(25) });
+    sidecar.call("passio.focus.start", params).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn focus_stop(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.focus.stop", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn pack_get(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.pack.get", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn pack_set(
+    sidecar: State<'_, Sidecar>,
+    pack: String,
+) -> Result<Value, String> {
+    sidecar.call("passio.pack.set", json!({ "pack": pack })).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn pack_cycle(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.pack.cycle", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn dnd_get(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.dnd.get", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn dnd_toggle(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.dnd.toggle", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn dnd_set(
+    sidecar: State<'_, Sidecar>,
+    minutes: Option<i32>,
+) -> Result<Value, String> {
+    sidecar
+        .call("passio.dnd.set", json!({ "minutes": minutes }))
+        .await
+        .map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn proactive_get(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.proactive.get", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn proactive_set(
+    sidecar: State<'_, Sidecar>,
+    mode: Option<String>,
+    interval_min: Option<u32>,
+) -> Result<Value, String> {
+    let mut obj = serde_json::Map::new();
+    if let Some(m) = mode { obj.insert("mode".into(), Value::String(m)); }
+    if let Some(n) = interval_min { obj.insert("interval_min".into(), json!(n)); }
+    sidecar.call("passio.proactive.set", Value::Object(obj)).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn morning_briefing(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.morningBriefing", json!({})).await.map_err(|e| e.to_string())
+}
+#[tauri::command]
+pub async fn daily_recap(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
+    sidecar.call("passio.dailyRecap", json!({})).await.map_err(|e| e.to_string())
+}

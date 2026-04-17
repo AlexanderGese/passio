@@ -1,10 +1,11 @@
 import clsx from "clsx";
 import { useEffect } from "react";
-import { onBubbleState, onHotkey, onSidecarLog, pingSidecar } from "../ipc";
+import { onBubbleState, onHotkey, onScanResult, onSidecarLog, pingSidecar } from "../ipc";
 import { PassioAvatar } from "../avatar/PassioAvatar";
 import { usePassioStore } from "../store";
 import { BrowserPanel } from "./BrowserPanel";
 import { ChatPanel } from "./ChatPanel";
+import { FocusPanel } from "./FocusPanel";
 import { GoalsPanel } from "./GoalsPanel";
 
 /**
@@ -16,12 +17,14 @@ export function Bubble() {
     bubble,
     expanded,
     tab,
+    nudge,
     setBubble,
     setExpanded,
     toggleExpanded,
     setTab,
     setSidecarReady,
     setLastPing,
+    setNudge,
   } = usePassioStore();
 
   useEffect(() => {
@@ -39,11 +42,18 @@ export function Bubble() {
         }
         if (name === "toggle-bubble") toggleExpanded();
       }),
+      onScanResult((r) => {
+        if (r.decision !== "quiet" && r.message) {
+          setNudge({ message: r.message, ts: Date.now() });
+          setBubble("alert");
+          setTimeout(() => setBubble("idle"), 2_000);
+        }
+      }),
     ];
     return () => {
       for (const p of unsubs) p.then((fn) => fn()).catch(() => {});
     };
-  }, [setBubble, setExpanded, toggleExpanded, setTab, setSidecarReady]);
+  }, [setBubble, setExpanded, toggleExpanded, setTab, setSidecarReady, setNudge]);
 
   async function handleClick() {
     toggleExpanded();
@@ -59,6 +69,18 @@ export function Bubble() {
 
   return (
     <div className="fixed inset-0 flex flex-col items-end justify-end p-3 pointer-events-none">
+      {nudge && (
+        <div
+          className="pointer-events-auto no-drag mb-2 max-w-[320px] rounded-2xl border border-amber-500/30 bg-amber-900/70 px-3 py-2 text-[12px] text-amber-100 shadow-2xl backdrop-blur"
+          onClick={() => setNudge(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Escape" && setNudge(null)}
+        >
+          🍇 {nudge.message}
+          <span className="ml-2 text-[10px] text-amber-300">(click to dismiss)</span>
+        </div>
+      )}
       {expanded && (
         <div className="no-drag pointer-events-auto mb-2 flex h-[460px] w-[320px] flex-col rounded-2xl border border-passio-skinLight/30 bg-neutral-900/95 p-3 text-neutral-100 shadow-2xl backdrop-blur">
           <Tabs />
@@ -66,6 +88,7 @@ export function Bubble() {
             {tab === "chat" && <ChatPanel />}
             {tab === "goals" && <GoalsPanel />}
             {tab === "browser" && <BrowserPanel />}
+            {tab === "focus" && <FocusPanel />}
           </div>
         </div>
       )}
@@ -86,7 +109,7 @@ function Tabs() {
   const { tab, setTab } = usePassioStore();
   return (
     <div className="flex gap-1 border-b border-white/5 pb-1 text-xs">
-      {(["chat", "goals", "browser"] as const).map((t) => (
+      {(["chat", "goals", "browser", "focus"] as const).map((t) => (
         <button
           key={t}
           type="button"

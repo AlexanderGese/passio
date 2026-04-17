@@ -22,7 +22,7 @@ use sidecar::{Sidecar, SidecarEvent};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, LogicalPosition, Manager,
+    AppHandle, Emitter, Listener, LogicalPosition, Manager,
 };
 
 pub fn run() {
@@ -54,6 +54,23 @@ pub fn run() {
                 tracing::warn!(error=%e, "hotkey registration failed");
             }
 
+            // Force-scan hotkey triggers an immediate scan and pipes
+            // the decision back to the HUD.
+            let force_handle = handle.clone();
+            let force_sidecar = sidecar.clone();
+            let _ = handle.listen("passio://hotkey", move |e| {
+                if e.payload().contains("force-scan") {
+                    let h = force_handle.clone();
+                    let s = force_sidecar.clone();
+                    tauri::async_runtime::spawn(async move {
+                        match s.call("passio.scan", json!({ "reason": "force" })).await {
+                            Ok(v) => { let _ = h.emit("passio://scan-result", v); }
+                            Err(err) => tracing::warn!(error=%err, "force scan failed"),
+                        }
+                    });
+                }
+            });
+
             if let Err(e) = build_tray(&handle) {
                 tracing::warn!(error=%e, "tray setup failed");
             }
@@ -76,6 +93,19 @@ pub fn run() {
             commands::milestone_done,
             commands::bridge_status,
             commands::summarize_page,
+            commands::focus_state,
+            commands::focus_start,
+            commands::focus_stop,
+            commands::pack_get,
+            commands::pack_set,
+            commands::pack_cycle,
+            commands::dnd_get,
+            commands::dnd_toggle,
+            commands::dnd_set,
+            commands::proactive_get,
+            commands::proactive_set,
+            commands::morning_briefing,
+            commands::daily_recap,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
