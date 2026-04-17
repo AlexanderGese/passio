@@ -40,4 +40,36 @@ impl PassioPaths {
     pub fn extension_token_file(&self) -> PathBuf {
         self.config_dir.join("extension-token")
     }
+
+    pub fn secrets_file(&self) -> PathBuf {
+        self.config_dir.join("secrets.env")
+    }
+}
+
+/// Parse a `KEY=VALUE` style secrets file. Lines beginning with `#` and
+/// empty lines are ignored. Values may optionally be wrapped in single or
+/// double quotes. This is a temporary stand-in until the keychain wizard
+/// ships in a later plan.
+pub fn load_secrets(path: &std::path::Path) -> std::collections::HashMap<String, String> {
+    let mut out = std::collections::HashMap::new();
+    let Ok(content) = std::fs::read_to_string(path) else {
+        return out;
+    };
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if let Some((k, v)) = line.split_once('=') {
+            let key = k.trim().to_string();
+            let mut val = v.trim().to_string();
+            if (val.starts_with('"') && val.ends_with('"'))
+                || (val.starts_with('\'') && val.ends_with('\''))
+            {
+                val = val[1..val.len() - 1].to_string();
+            }
+            out.insert(key, val);
+        }
+    }
+    out
 }
