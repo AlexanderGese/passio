@@ -15,6 +15,8 @@ import { RpcMethods, type PingResult } from "@passio/shared";
 import { chat } from "./ai/agent.js";
 import { dailyRecap, morningBriefing } from "./ai/recap.js";
 import { scan } from "./ai/scan.js";
+import { rewrite, translate } from "./ai/transform.js";
+import { synthesize, transcribe } from "./ai/voice.js";
 import { startBridge } from "./bridge/server.js";
 import { openDb } from "./db/client.js";
 import { IdleWatchdog } from "./idle.js";
@@ -70,7 +72,7 @@ import {
 } from "./vault/tools.js";
 import { watchVault } from "./vault/watcher.js";
 
-const SIDECAR_VERSION = "0.5.0";
+const SIDECAR_VERSION = "0.6.0";
 const DEFAULT_IDLE_MS = Number(process.env.PASSIO_IDLE_MS ?? 90_000);
 
 const bus = new RpcBus();
@@ -305,6 +307,22 @@ bus.on(RpcMethods.DISTRACTING_SET, async (params: unknown) => {
   const { domains } = params as { domains: string[] };
   return setDistractingDomains(db, domains);
 });
+
+// --- Voice ---
+bus.on(RpcMethods.VOICE_TRANSCRIBE, async (params: unknown) =>
+  transcribe(params as Parameters<typeof transcribe>[0]),
+);
+bus.on(RpcMethods.VOICE_SYNTHESIZE, async (params: unknown) =>
+  synthesize(params as Parameters<typeof synthesize>[0]),
+);
+
+// --- Text transforms ---
+bus.on(RpcMethods.REWRITE, async (params: unknown) =>
+  rewrite(params as Parameters<typeof rewrite>[0]),
+);
+bus.on(RpcMethods.TRANSLATE, async (params: unknown) =>
+  translate(params as Parameters<typeof translate>[0]),
+);
 
 bus.on(RpcMethods.DAILY_RECAP, async (params: unknown) => {
   const p = (params ?? {}) as { date?: string };

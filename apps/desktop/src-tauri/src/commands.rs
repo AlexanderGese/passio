@@ -198,3 +198,35 @@ pub async fn morning_briefing(sidecar: State<'_, Sidecar>) -> Result<Value, Stri
 pub async fn daily_recap(sidecar: State<'_, Sidecar>) -> Result<Value, String> {
     sidecar.call("passio.dailyRecap", json!({})).await.map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn voice_transcribe(
+    sidecar: State<'_, Sidecar>,
+    audio_base64: String,
+    mime_type: Option<String>,
+    language: Option<String>,
+) -> Result<Value, String> {
+    let mut obj = serde_json::Map::new();
+    obj.insert("audio_base64".into(), Value::String(audio_base64));
+    if let Some(m) = mime_type { obj.insert("mime_type".into(), Value::String(m)); }
+    if let Some(l) = language { obj.insert("language".into(), Value::String(l)); }
+    sidecar
+        .call("passio.voice.transcribe", Value::Object(obj))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn voice_synthesize(
+    sidecar: State<'_, Sidecar>,
+    text: String,
+    voice: Option<String>,
+) -> Result<Value, String> {
+    let mut obj = serde_json::Map::new();
+    obj.insert("text".into(), Value::String(text));
+    if let Some(v) = voice { obj.insert("voice".into(), Value::String(v)); }
+    sidecar
+        .call("passio.voice.synthesize", Value::Object(obj))
+        .await
+        .map_err(|e| e.to_string())
+}

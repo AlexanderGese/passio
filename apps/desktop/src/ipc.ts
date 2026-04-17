@@ -159,6 +159,25 @@ export function onScanResult(cb: (r: ScanResult) => void): Promise<UnlistenFn> {
   return listen<ScanResult>("passio://scan-result", (e) => cb(e.payload));
 }
 
+export type SelectionResult = { kind: "rewrite" | "translate"; ok: boolean; text?: string; error?: string };
+export function onSelectionResult(cb: (r: SelectionResult) => void): Promise<UnlistenFn> {
+  return listen<SelectionResult>("passio://selection-result", (e) => cb(e.payload));
+}
+
+export const voiceApi = {
+  transcribe: (input: { audio_base64: string; mime_type?: string; language?: string }) =>
+    invoke<{ text: string }>("voice_transcribe", {
+      audioBase64: input.audio_base64,
+      mimeType: input.mime_type ?? null,
+      language: input.language ?? null,
+    }),
+  synthesize: (input: { text: string; voice?: string }) =>
+    invoke<{ mime_type: string; audio_base64: string }>("voice_synthesize", {
+      text: input.text,
+      voice: input.voice ?? null,
+    }),
+};
+
 export function onBubbleState(cb: (state: BubbleState) => void): Promise<UnlistenFn> {
   return listen<BubbleState>("passio://bubble-state", (e) => cb(e.payload));
 }

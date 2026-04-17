@@ -109,6 +109,12 @@ export const RpcMethods = {
   MILESTONE_ADD: "passio.milestone.add",
   MILESTONE_DONE: "passio.milestone.done",
   MILESTONE_RESCHEDULE: "passio.milestone.reschedule",
+  // Voice
+  VOICE_TRANSCRIBE: "passio.voice.transcribe",
+  VOICE_SYNTHESIZE: "passio.voice.synthesize",
+  // Text transforms
+  REWRITE: "passio.rewrite",
+  TRANSLATE: "passio.translate",
   // Focus / packs / DND / proactive
   FOCUS_GET_STATE: "passio.focus.getState",
   FOCUS_START: "passio.focus.start",

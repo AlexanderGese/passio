@@ -13,6 +13,7 @@ mod hotkeys;
 mod logs;
 mod paths;
 mod scheduler;
+mod selection;
 mod sidecar;
 
 use std::sync::Arc;
@@ -54,20 +55,33 @@ pub fn run() {
                 tracing::warn!(error=%e, "hotkey registration failed");
             }
 
-            // Force-scan hotkey triggers an immediate scan and pipes
-            // the decision back to the HUD.
+            // Hotkey dispatch: force-scan + rewrite-selection + translate-selection
             let force_handle = handle.clone();
             let force_sidecar = sidecar.clone();
             let _ = handle.listen("passio://hotkey", move |e| {
-                if e.payload().contains("force-scan") {
-                    let h = force_handle.clone();
-                    let s = force_sidecar.clone();
-                    tauri::async_runtime::spawn(async move {
-                        match s.call("passio.scan", json!({ "reason": "force" })).await {
-                            Ok(v) => { let _ = h.emit("passio://scan-result", v); }
-                            Err(err) => tracing::warn!(error=%err, "force scan failed"),
-                        }
-                    });
+                let name = strip_quotes(e.payload());
+                let h = force_handle.clone();
+                let s = force_sidecar.clone();
+                match name.as_str() {
+                    "force-scan" => {
+                        tauri::async_runtime::spawn(async move {
+                            match s.call("passio.scan", json!({ "reason": "force" })).await {
+                                Ok(v) => { let _ = h.emit("passio://scan-result", v); }
+                                Err(err) => tracing::warn!(error=%err, "force scan failed"),
+                            }
+                        });
+                    }
+                    "rewrite-selection" => {
+                        tauri::async_runtime::spawn(async move {
+                            run_selection_transform(&h, &s, "rewrite").await;
+                        });
+                    }
+                    "translate-selection" => {
+                        tauri::async_runtime::spawn(async move {
+                            run_selection_transform(&h, &s, "translate").await;
+                        });
+                    }
+                    _ => {}
                 }
             });
 
@@ -106,6 +120,8 @@ pub fn run() {
             commands::proactive_set,
             commands::morning_briefing,
             commands::daily_recap,
+            commands::voice_transcribe,
+            commands::voice_synthesize,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -187,6 +203,54 @@ fn dock_bubble(app: &AppHandle) -> tauri::Result<()> {
     tracing::info!(x, y, mon_w, mon_h, "docking bubble bottom-right");
     window.set_position(LogicalPosition::new(x, y))?;
     Ok(())
+}
+
+/// Remove surrounding JSON quotes from a hotkey payload ("force-scan" → force-scan).
+fn strip_quotes(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
+        return trimmed[1..trimmed.len() - 1].to_string();
+    }
+    trimmed.to_string()
+}
+
+async fn run_selection_transform(handle: &AppHandle, sidecar: &Sidecar, kind: &str) {
+    let selection_text = match selection::get_primary().await {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = handle.emit(
+                "passio://selection-result",
+                json!({ "kind": kind, "ok": false, "error": e.to_string() }),
+            );
+            return;
+        }
+    };
+    let (method, params) = match kind {
+        "rewrite" => ("passio.rewrite", json!({ "text": selection_text, "style": "clearer" })),
+        "translate" => (
+            "passio.translate",
+            json!({ "text": selection_text, "target_language": "English" }),
+        ),
+        _ => return,
+    };
+    match sidecar.call(method, params).await {
+        Ok(v) => {
+            let text = v.get("text").and_then(|x| x.as_str()).unwrap_or("").to_string();
+            if !text.is_empty() {
+                let _ = selection::set_clipboard(&text).await;
+            }
+            let _ = handle.emit(
+                "passio://selection-result",
+                json!({ "kind": kind, "ok": true, "text": text }),
+            );
+        }
+        Err(e) => {
+            let _ = handle.emit(
+                "passio://selection-result",
+                json!({ "kind": kind, "ok": false, "error": e.to_string() }),
+            );
+        }
+    }
 }
 
 /// Locate the Bun sidecar binary. In release builds it lives in the bundle's

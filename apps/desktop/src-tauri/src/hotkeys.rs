@@ -28,6 +28,14 @@ fn defaults() -> Vec<Binding> {
             shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::ALT), Code::Space),
             name: "ptt",
         },
+        Binding {
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyR),
+            name: "rewrite-selection",
+        },
+        Binding {
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyL),
+            name: "translate-selection",
+        },
     ]
 }
 

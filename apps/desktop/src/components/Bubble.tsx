@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { useEffect } from "react";
-import { onBubbleState, onHotkey, onScanResult, onSidecarLog, pingSidecar } from "../ipc";
+import { onBubbleState, onHotkey, onScanResult, onSelectionResult, onSidecarLog, pingSidecar } from "../ipc";
 import { PassioAvatar } from "../avatar/PassioAvatar";
 import { usePassioStore } from "../store";
 import { BrowserPanel } from "./BrowserPanel";
@@ -41,6 +41,16 @@ export function Bubble() {
           setExpanded(true);
         }
         if (name === "toggle-bubble") toggleExpanded();
+      }),
+      onSelectionResult((r) => {
+        const msg = r.ok
+          ? r.kind === "translate"
+            ? `translated → ${r.text!.slice(0, 140)}`
+            : `rewrite copied to clipboard · ${r.text!.slice(0, 120)}…`
+          : `⚠ ${r.kind}: ${r.error ?? "failed"}`;
+        setNudge({ message: msg, ts: Date.now() });
+        setBubble(r.ok ? "talking" : "alert");
+        setTimeout(() => setBubble("idle"), 1800);
       }),
       onScanResult((r) => {
         if (r.decision !== "quiet" && r.message) {
