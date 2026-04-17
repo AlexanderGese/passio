@@ -50,5 +50,11 @@ pub fn env_from_keyring() -> Vec<(&'static str, String)> {
     if let Ok(Some(v)) = get_secret("mail_pass") {
         out.push(("PASSIO_MAIL_APP_PASSWORD", v));
     }
+    if let Ok(Some(v)) = get_secret("db_cipher") {
+        out.push(("PASSIO_DB_CIPHER_KEY", v));
+    }
+    if let Ok(Some(v)) = get_secret("vercel_sandbox_token") {
+        out.push(("PASSIO_VERCEL_SANDBOX_TOKEN", v));
+    }
     out
 }

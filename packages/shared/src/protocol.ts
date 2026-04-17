@@ -142,6 +142,14 @@ export const RpcMethods = {
   TRANSLATE: "passio.translate",
   // Automation
   AUTOMATE: "passio.automate",
+  // Secrets vault
+  SECRET_SET: "passio.secret.set",
+  SECRET_GET: "passio.secret.get",
+  SECRET_LIST: "passio.secret.list",
+  SECRET_DELETE: "passio.secret.delete",
+  // Location
+  LOCATION_REGISTER: "passio.location.register",
+  LOCATION_APPLY: "passio.location.apply",
   // Research / Sandbox
   RESEARCH: "passio.research",
   SANDBOX_RUN: "passio.sandbox.run",

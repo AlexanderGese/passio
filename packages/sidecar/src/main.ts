@@ -40,7 +40,9 @@ import {
 import { setCalendarSources, upcomingEvents } from "./tools/calendar.js";
 import { macroDelete, macroList, macroRun, macroSave } from "./tools/macros.js";
 import { automate } from "./tools/automation.js";
+import { applyCurrentLocation, registerLocation } from "./tools/location.js";
 import { research } from "./tools/research.js";
+import { secretDelete, secretGet, secretList, secretSet } from "./tools/secrets.js";
 import { sandboxRun } from "./tools/sandbox.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
 import { mailInbox, mailSearch, mailSend, mailUnread } from "./tools/mail.js";
@@ -233,6 +235,24 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
 bus.on(RpcMethods.AUTOMATE, async (p: unknown) =>
   automate(db, { bridge, bus }, p as Parameters<typeof automate>[2]),
 );
+
+// --- Secrets vault ---
+bus.on(RpcMethods.SECRET_SET, async (p: unknown) =>
+  secretSet(db, p as Parameters<typeof secretSet>[1]),
+);
+bus.on(RpcMethods.SECRET_GET, async (p: unknown) =>
+  secretGet(db, p as Parameters<typeof secretGet>[1]),
+);
+bus.on(RpcMethods.SECRET_LIST, async () => secretList(db));
+bus.on(RpcMethods.SECRET_DELETE, async (p: unknown) =>
+  secretDelete(db, p as Parameters<typeof secretDelete>[1]),
+);
+
+// --- Location ---
+bus.on(RpcMethods.LOCATION_REGISTER, async (p: unknown) =>
+  registerLocation(db, p as Parameters<typeof registerLocation>[1]),
+);
+bus.on(RpcMethods.LOCATION_APPLY, async () => applyCurrentLocation(db));
 bus.on(RpcMethods.RESEARCH, async (p: unknown) =>
   research(db, { bridge, bus }, p as Parameters<typeof research>[2]),
 );

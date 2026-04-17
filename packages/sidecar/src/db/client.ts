@@ -31,6 +31,29 @@ export function openDb(path = resolveDbPath()): Db {
   mkdirSync(dirname(path), { recursive: true });
   const raw = new Database(path, { create: true });
 
+  // Optional SQLCipher at-rest encryption: if PASSIO_DB_CIPHER_KEY is set,
+  // apply `PRAGMA key = '<key>'` before any DDL. Note: this requires the
+  // SQLite binary to be compiled with SQLCipher — stock `bun:sqlite` does
+  // NOT include it. Ship a SQLCipher-patched binary and set
+  // PASSIO_SQLITE_LIB to the path, then bun:sqlite loads that lib.
+  const cipherKey = process.env.PASSIO_DB_CIPHER_KEY;
+  if (cipherKey) {
+    try {
+      raw.exec(`PRAGMA key = ${JSON.stringify(cipherKey)}`);
+    } catch (e) {
+      console.error(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          method: "passio.log",
+          params: {
+            level: "warn",
+            message: `SQLCipher PRAGMA failed — binary not SQLCipher-compiled? ${(e as Error).message}`,
+          },
+        }),
+      );
+    }
+  }
+
   let hasVec = false;
   // Prefer an explicit path (set by the Rust core / dev script) because
   // the sqlite-vec npm layout isn't accessible from inside `bun --compile`
