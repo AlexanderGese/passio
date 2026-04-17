@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["bun-types"],
+    "paths": {
+      "@passio/shared": ["../shared/src/index.ts"],
+      "@passio/shared/*": ["../shared/src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

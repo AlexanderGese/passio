@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Passio",
+  "version": "0.1.0",
+  "identifier": "com.passio.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "bubble",
+        "title": "Passio",
+        "width": 360,
+        "height": 520,
+        "minWidth": 120,
+        "minHeight": 120,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "shadow": false,
+        "visible": true,
+        "focus": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage"],
+    "category": "Productivity",
+    "copyright": "Copyright (c) 2026 Alexander Gese",
+    "shortDescription": "Local-first agentic desktop AI assistant",
+    "longDescription": "Passio — a passionfruit-shaped desktop AI assistant that lives in a floating bubble, remembers everything, and helps you pursue big goals.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
+    "resources": ["resources/*"],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libayatana-appindicator3-1",
+          "librsvg2-2",
+          "libxdo3"
+        ]
+      }
+    }
+  },
+  "plugins": {}
+}

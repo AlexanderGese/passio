@@ -1,0 +1,143 @@
+//! Passio desktop — Rust core.
+//!
+//! Responsibilities:
+//!   * Window / tray / hotkeys
+//!   * Spawn + supervise the Bun sidecar (JSON-RPC over stdio)
+//!   * Scheduler tick for proactive scans
+//!   * Relay sidecar events to the HUD
+//!
+//! All AI / memory / tool logic lives in the sidecar, never here.
+
+mod commands;
+mod hotkeys;
+mod logs;
+mod paths;
+mod scheduler;
+mod sidecar;
+
+use std::sync::Arc;
+
+use serde_json::json;
+use sidecar::{Sidecar, SidecarEvent};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+    AppHandle, Emitter, Manager,
+};
+
+pub fn run() {
+    let paths = paths::PassioPaths::resolve().expect("init paths");
+    let _log_guard = logs::init(&paths.logs_dir).expect("init logs");
+    tracing::info!(version = env!("CARGO_PKG_VERSION"), "starting Passio");
+
+    let sidecar_bin = resolve_sidecar_binary();
+    tracing::info!(path = %sidecar_bin.display(), "sidecar binary resolved");
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .setup(move |app| {
+            let handle = app.handle().clone();
+
+            let emit_handle = handle.clone();
+            let event_sink: sidecar::EventSink = Arc::new(move |evt: SidecarEvent| {
+                forward_event(&emit_handle, evt);
+            });
+
+            let sidecar = Sidecar::new(sidecar_bin.clone(), event_sink);
+            app.manage(sidecar.clone());
+
+            let scheduler = scheduler::Scheduler::new(sidecar.clone(), 10);
+            scheduler.spawn();
+            app.manage(scheduler);
+
+            if let Err(e) = hotkeys::register_defaults(&handle) {
+                tracing::warn!(error=%e, "hotkey registration failed");
+            }
+
+            if let Err(e) = build_tray(&handle) {
+                tracing::warn!(error=%e, "tray setup failed");
+            }
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::ping_sidecar,
+            commands::request_scan,
+            commands::shutdown_sidecar,
+        ])
+        .on_window_event(|_window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Keep passio running in tray; just hide the window
+                api.prevent_close();
+            }
+        })
+        .run(tauri::generate_context!())
+        .expect("tauri run");
+}
+
+fn forward_event(handle: &AppHandle, evt: SidecarEvent) {
+    let (topic, payload) = match evt {
+        SidecarEvent::Log { level, message } => (
+            "passio://sidecar-log",
+            json!({ "level": level, "message": message }),
+        ),
+        SidecarEvent::BubbleState(v) => ("passio://bubble-state", v),
+        SidecarEvent::Crash { reason } => (
+            "passio://sidecar-crash",
+            json!({ "reason": reason }),
+        ),
+        SidecarEvent::SpawnFailed { reason } => (
+            "passio://sidecar-spawn-failed",
+            json!({ "reason": reason }),
+        ),
+    };
+    let _ = handle.emit(topic, payload);
+}
+
+fn build_tray(app: &AppHandle) -> tauri::Result<()> {
+    let toggle = MenuItem::with_id(app, "toggle", "Toggle bubble", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit Passio", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&toggle, &quit])?;
+
+    TrayIconBuilder::with_id("passio-tray")
+        .tooltip("Passio")
+        .menu(&menu)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "toggle" => {
+                if let Some(win) = app.get_webview_window("bubble") {
+                    if win.is_visible().unwrap_or(false) {
+                        let _ = win.hide();
+                    } else {
+                        let _ = win.show();
+                    }
+                }
+            }
+            "quit" => {
+                app.exit(0);
+            }
+            _ => {}
+        })
+        .build(app)?;
+    Ok(())
+}
+
+/// Locate the Bun sidecar binary. In release builds it lives in the bundle's
+/// resources/; in dev it is expected alongside the Tauri project.
+fn resolve_sidecar_binary() -> std::path::PathBuf {
+    // Prefer explicit env for dev
+    if let Ok(p) = std::env::var("PASSIO_SIDECAR_BIN") {
+        return p.into();
+    }
+    // Bundle path (handled by Tauri resource resolution at runtime)
+    let here = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|p| p.to_path_buf()));
+    if let Some(dir) = here {
+        let candidate = dir.join("resources").join("passio-sidecar");
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+    // Dev fallback: workspace-relative resources path
+    std::path::PathBuf::from("src-tauri/resources/passio-sidecar")
+}

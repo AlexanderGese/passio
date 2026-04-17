@@ -1,0 +1,32 @@
+{
+  "name": "passio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first agentic desktop AI assistant (passionfruit mascot)",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run scripts/dev.ts",
+    "build": "bun run scripts/build.ts",
+    "build:sidecar": "bun --filter @passio/sidecar build",
+    "build:desktop": "cd apps/desktop && bun run tauri build",
+    "lint": "bun run --filter '*' lint",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun test",
+    "format": "bunx biome format --write .",
+    "check": "bunx biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.3.0",
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "bun": ">=1.3.0",
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@passio/sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "scripts": {
+    "dev": "bun --watch run src/main.ts",
+    "start": "bun run src/main.ts",
+    "build": "bun build ./src/main.ts --compile --target=bun-linux-x64 --outfile ../../apps/desktop/src-tauri/resources/passio-sidecar",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@passio/shared": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
