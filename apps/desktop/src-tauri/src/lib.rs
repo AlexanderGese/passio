@@ -22,7 +22,7 @@ use sidecar::{Sidecar, SidecarEvent};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager,
+    AppHandle, Emitter, LogicalPosition, Manager,
 };
 
 pub fn run() {
@@ -56,6 +56,10 @@ pub fn run() {
 
             if let Err(e) = build_tray(&handle) {
                 tracing::warn!(error=%e, "tray setup failed");
+            }
+
+            if let Err(e) = dock_bubble(&handle) {
+                tracing::warn!(error=%e, "bubble dock failed");
             }
 
             Ok(())
@@ -118,6 +122,32 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             _ => {}
         })
         .build(app)?;
+    Ok(())
+}
+
+/// Dock the bubble window to the bottom-right corner of the primary monitor.
+/// Uses the configured window size (not `outer_size()`, which reports 0 before
+/// the window is realised on X11).
+const BUBBLE_WIN_W: f64 = 360.0;
+const BUBBLE_WIN_H: f64 = 540.0;
+
+fn dock_bubble(app: &AppHandle) -> tauri::Result<()> {
+    const PADDING: f64 = 16.0;
+    let Some(window) = app.get_webview_window("bubble") else {
+        return Ok(());
+    };
+    let monitor = window
+        .current_monitor()?
+        .ok_or(tauri::Error::WindowNotFound)?;
+    let monitor_size = monitor.size();
+    let scale = monitor.scale_factor();
+    let mon_w = monitor_size.width as f64 / scale;
+    let mon_h = monitor_size.height as f64 / scale;
+
+    let x = (mon_w - BUBBLE_WIN_W - PADDING).max(0.0);
+    let y = (mon_h - BUBBLE_WIN_H - PADDING).max(0.0);
+    tracing::info!(x, y, mon_w, mon_h, "docking bubble bottom-right");
+    window.set_position(LogicalPosition::new(x, y))?;
     Ok(())
 }
 

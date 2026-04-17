@@ -16,10 +16,10 @@
         "label": "bubble",
         "title": "Passio",
         "width": 360,
-        "height": 520,
-        "minWidth": 120,
-        "minHeight": 120,
-        "resizable": true,
+        "height": 540,
+        "minWidth": 80,
+        "minHeight": 80,
+        "resizable": false,
         "fullscreen": false,
         "decorations": false,
         "transparent": true,
@@ -27,7 +27,8 @@
         "skipTaskbar": true,
         "shadow": false,
         "visible": true,
-        "focus": false
+        "focus": false,
+        "center": false
       }
     ],
     "security": {

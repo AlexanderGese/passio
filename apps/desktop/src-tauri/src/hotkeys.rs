@@ -40,7 +40,10 @@ pub fn register_defaults(app: &AppHandle) -> Result<()> {
         bindings.iter().map(|b| (b.shortcut, b.name)).collect();
 
     let emitter = app.clone();
-    gs.on_shortcuts(shortcuts.clone(), move |_app, shortcut, event| {
+    // `on_shortcuts` in tauri-plugin-global-shortcut 2.3 registers the
+    // shortcuts AND installs the handler. Do NOT also call `register(...)`
+    // separately — that produces "HotKey already registered" errors.
+    gs.on_shortcuts(shortcuts, move |_app, shortcut, event| {
         if !matches!(event.state(), ShortcutState::Pressed) {
             return;
         }
@@ -53,11 +56,8 @@ pub fn register_defaults(app: &AppHandle) -> Result<()> {
         let _ = emitter.emit("passio://hotkey", name);
     })?;
 
-    for b in &defaults() {
-        match gs.register(b.shortcut) {
-            Ok(()) => tracing::info!(name = b.name, "shortcut registered"),
-            Err(e) => tracing::warn!(name = b.name, error = %e, "shortcut registration failed"),
-        }
+    for b in &bindings {
+        tracing::info!(name = b.name, "shortcut registered");
     }
 
     Ok(())
