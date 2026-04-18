@@ -26,6 +26,8 @@ import {
 } from "./bridge/gate.js";
 import { dailyRecap, morningBriefing } from "./ai/recap.js";
 import { scan } from "./ai/scan.js";
+import { dispatchScanProposal } from "./ai/scan_dispatch.js";
+import { getAutomationPrefs, setAutomationPrefs } from "./tools/automation_settings.js";
 import { rewrite, translate } from "./ai/transform.js";
 import { synthesize, transcribe } from "./ai/voice.js";
 import {
@@ -37,7 +39,7 @@ import {
   journalRecent,
   timeBlockCreate,
 } from "./tools/analytics.js";
-import { setCalendarSources, upcomingEvents } from "./tools/calendar.js";
+import { listCalendarSources, setCalendarSources, upcomingEvents } from "./tools/calendar.js";
 import { macroDelete, macroList, macroRun, macroSave } from "./tools/macros.js";
 import { automate } from "./tools/automation.js";
 import { applyCurrentLocation, registerLocation } from "./tools/location.js";
@@ -46,7 +48,7 @@ import { secretDelete, secretGet, secretList, secretSet } from "./tools/secrets.
 import { sandboxRun } from "./tools/sandbox.js";
 import { cardGrade, cardsDue, flashcardsFromNote } from "./tools/flashcards.js";
 import { mailInbox, mailSearch, mailSend, mailUnread } from "./tools/mail.js";
-import { latestItems, setFeeds } from "./tools/rss.js";
+import { latestItems, listFeeds, setFeeds } from "./tools/rss.js";
 import { currentWeather, setLocation as setWeatherLocation } from "./tools/weather.js";
 import { getKeybinds, getPersona, setKeybinds, setPersona } from "./tools/persona.js";
 import { fileSearch, indexFiles } from "./tools/files.js";
@@ -182,8 +184,20 @@ bus.on(RpcMethods.SCAN, async (params: unknown) => {
       badge: 1,
     });
   }
+  // Autonomous act dispatch — scanner's proposed tool call runs through
+  // the gate (or respects policy, per automation prefs).
+  if (decision.decision === "act" && decision.proposed_tool) {
+    const dispatched = await dispatchScanProposal(db, { bridge, bus }, decision);
+    return { ...decision, dispatch: dispatched };
+  }
   return decision;
 });
+
+// --- Automation preferences ---
+bus.on(RpcMethods.AUTOMATION_GET, async () => getAutomationPrefs(db));
+bus.on(RpcMethods.AUTOMATION_SET, async (p: unknown) =>
+  setAutomationPrefs(db, p as Parameters<typeof setAutomationPrefs>[1]),
+);
 
 bus.on(RpcMethods.CHAT, async (params: unknown) => {
   const { prompt, conversationId } = params as {
@@ -280,6 +294,7 @@ bus.on(RpcMethods.CAL_SET_SOURCES, async (p: unknown) => {
   const { sources } = p as { sources: string[] };
   return setCalendarSources(db, sources);
 });
+bus.on(RpcMethods.CAL_LIST, async () => listCalendarSources(db));
 bus.on(RpcMethods.RSS_LATEST, async (p: unknown) =>
   latestItems(db, (p ?? {}) as Parameters<typeof latestItems>[1]),
 );
@@ -287,6 +302,7 @@ bus.on(RpcMethods.RSS_SET_FEEDS, async (p: unknown) => {
   const { feeds } = p as { feeds: string[] };
   return setFeeds(db, feeds);
 });
+bus.on(RpcMethods.RSS_LIST, async () => listFeeds(db));
 bus.on(RpcMethods.WEATHER_NOW, async () => currentWeather(db));
 bus.on(RpcMethods.WEATHER_SET_LOCATION, async (p: unknown) => {
   const { location } = p as { location: { lat: number; lon: number; name: string } | null };

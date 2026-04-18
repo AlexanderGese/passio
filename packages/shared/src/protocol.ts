@@ -142,6 +142,8 @@ export const RpcMethods = {
   TRANSLATE: "passio.translate",
   // Automation
   AUTOMATE: "passio.automate",
+  AUTOMATION_GET: "passio.automation.get",
+  AUTOMATION_SET: "passio.automation.set",
   // Secrets vault
   SECRET_SET: "passio.secret.set",
   SECRET_GET: "passio.secret.get",
@@ -161,9 +163,11 @@ export const RpcMethods = {
   // Calendar
   CAL_UPCOMING: "passio.calendar.upcoming",
   CAL_SET_SOURCES: "passio.calendar.setSources",
+  CAL_LIST: "passio.calendar.list",
   // RSS
   RSS_LATEST: "passio.rss.latest",
   RSS_SET_FEEDS: "passio.rss.setFeeds",
+  RSS_LIST: "passio.rss.list",
   // Weather
   WEATHER_NOW: "passio.weather.now",
   WEATHER_SET_LOCATION: "passio.weather.setLocation",

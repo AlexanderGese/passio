@@ -327,6 +327,21 @@ pub async fn keybinds_set(
     sidecar.call("passio.keybinds.set", patch).await.map_err(|e| e.to_string())
 }
 
+/// Generic sidecar passthrough. The HUD uses this for v2 settings surfaces
+/// where adding a dedicated Rust command per RPC isn't worth the code.
+/// Allow-list on the frontend side; this just forwards.
+#[tauri::command]
+pub async fn sidecar_passthrough(
+    sidecar: State<'_, Sidecar>,
+    method: String,
+    params: Option<Value>,
+) -> Result<Value, String> {
+    sidecar
+        .call(&method, params.unwrap_or(Value::Object(Default::default())))
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // ---- First-run helpers ----
 #[tauri::command]
 pub async fn first_run_done(sidecar: State<'_, Sidecar>) -> Result<bool, String> {

@@ -172,6 +172,7 @@ pub fn run() {
             commands::persona_set,
             commands::keybinds_get,
             commands::keybinds_set,
+            commands::sidecar_passthrough,
         ])
         .on_window_event(|_window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

@@ -29,6 +29,10 @@ function getSources(db: Db): string[] {
   }
 }
 
+export function listCalendarSources(db: Db): { sources: string[] } {
+  return { sources: getSources(db) };
+}
+
 export function setCalendarSources(db: Db, sources: string[]): { ok: true } {
   db.$raw
     .query(

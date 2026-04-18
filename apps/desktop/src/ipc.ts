@@ -186,6 +186,69 @@ export const keychainApi = {
   delete: (key: string) => invoke<void>("keychain_delete", { key }),
 };
 
+// --- v2 settings surfaces (sidecar-backed) ---
+
+type SidecarCallArgs = { method: string; params?: unknown };
+async function sidecarCall<T>(method: string, params?: unknown): Promise<T> {
+  return invoke<T>("sidecar_passthrough", { method, params: params ?? {} } satisfies SidecarCallArgs);
+}
+
+export const calendarApi = {
+  listSources: () => sidecarCall<{ sources: string[] }>("passio.calendar.list"),
+  setSources: (sources: string[]) =>
+    sidecarCall<{ ok: true }>("passio.calendar.setSources", { sources }),
+  upcoming: (limit = 5, days = 7) =>
+    sidecarCall<{ events: Array<{ summary: string; start: string; end?: string; location?: string; source: string }> }>(
+      "passio.calendar.upcoming",
+      { limit, days },
+    ),
+};
+
+export const rssApi = {
+  getFeeds: () => sidecarCall<{ feeds: string[] }>("passio.rss.list"),
+  setFeeds: (feeds: string[]) => sidecarCall<{ ok: true }>("passio.rss.setFeeds", { feeds }),
+  latest: (hours = 24, limit = 15) =>
+    sidecarCall<{ items: Array<{ title: string; url: string; feed: string; published: string | null }> }>(
+      "passio.rss.latest",
+      { hours, limit },
+    ),
+};
+
+export const weatherApi = {
+  get: () =>
+    sidecarCall<{
+      location: string;
+      temp_c: number;
+      temp_high_c: number;
+      temp_low_c: number;
+      description: string;
+    } | null>("passio.weather.now"),
+  setLocation: (location: { lat: number; lon: number; name: string } | null) =>
+    sidecarCall<{ ok: true }>("passio.weather.setLocation", { location }),
+};
+
+export const policyApi = {
+  get: () =>
+    sidecarCall<{
+      domains: Record<string, "observe_only" | "ask_first" | "full_auto">;
+      countdownSeconds: number;
+      blocklist: Array<{ kind: "selector" | "url_contains"; pattern: string; reason: string }>;
+    }>("passio.policy.get"),
+  setHost: (host: string, policy: "observe_only" | "ask_first" | "full_auto") =>
+    sidecarCall<{ ok: true }>("passio.policy.set", { host, policy }),
+  deleteHost: (host: string) => sidecarCall<{ ok: true }>("passio.policy.delete", { host }),
+  setCountdown: (seconds: number) =>
+    sidecarCall<{ ok: true }>("passio.policy.setCountdown", { seconds }),
+  setBlocklist: (entries: Array<{ kind: string; pattern: string; reason: string }>) =>
+    sidecarCall<{ ok: true }>("passio.blocklist.set", { entries }),
+};
+
+export const automationPrefsApi = {
+  get: () => sidecarCall<{ scannerAlwaysGate: boolean }>("passio.automation.get"),
+  set: (patch: { scannerAlwaysGate?: boolean }) =>
+    sidecarCall<{ scannerAlwaysGate: boolean }>("passio.automation.set", patch),
+};
+
 export const voiceApi = {
   transcribe: (input: { audio_base64: string; mime_type?: string; language?: string }) =>
     invoke<{ text: string }>("voice_transcribe", {

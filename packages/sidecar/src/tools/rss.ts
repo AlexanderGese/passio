@@ -25,6 +25,10 @@ export function getFeeds(db: Db): string[] {
   }
 }
 
+export function listFeeds(db: Db): { feeds: string[] } {
+  return { feeds: getFeeds(db) };
+}
+
 export function setFeeds(db: Db, feeds: string[]): { ok: true } {
   db.$raw
     .query(
