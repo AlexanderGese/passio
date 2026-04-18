@@ -200,6 +200,7 @@ fn forward_event(handle: &AppHandle, _gate: &GateState, evt: SidecarEvent) {
             json!({ "reason": reason }),
         ),
         SidecarEvent::GateRequest(v) => ("passio://sidecar-gate-request", v),
+        SidecarEvent::ChatChunk(v) => ("passio://chat-chunk", v),
     };
     let _ = handle.emit(topic, payload);
 }

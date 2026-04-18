@@ -152,6 +152,12 @@ export const RpcMethods = {
   // Location
   LOCATION_REGISTER: "passio.location.register",
   LOCATION_APPLY: "passio.location.apply",
+  // PDF
+  PDF_INGEST: "passio.pdf.ingest",
+  // Chat history
+  CHAT_SEARCH: "passio.chat.search",
+  CHAT_LIST_CONVERSATIONS: "passio.chat.listConversations",
+  CHAT_GET_CONVERSATION: "passio.chat.getConversation",
   // Research / Sandbox
   RESEARCH: "passio.research",
   SANDBOX_RUN: "passio.sandbox.run",

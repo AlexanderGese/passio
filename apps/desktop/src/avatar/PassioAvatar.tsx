@@ -3,17 +3,24 @@ import clsx from "clsx";
 interface Props {
   state: "idle" | "listening" | "thinking" | "talking" | "alert";
   sizePx?: number;
+  /** 0–1 amplitude for lipsync. When >0, drives the open-mouth frame. */
+  mouthLevel?: number;
 }
 
 /**
- * Inline SVG placeholder avatar while the Gemini-rendered PNG assets
- * are being finalized. Swap to an <img> referencing
- * `src/avatar/{idle,talking}.png` once those files exist.
+ * Inline SVG avatar. 5 mouth frames driven by either the `mouthLevel`
+ * amplitude prop (Web Audio AnalyserNode) or the coarse `state` flag:
+ *   · closed    level < 0.05
+ *   · slight    0.05 – 0.15
+ *   · open      0.15 – 0.35
+ *   · wide      0.35 – 0.60
+ *   · widest    > 0.60
  */
-export function PassioAvatar({ state, sizePx = 60 }: Props) {
-  const mouthOpen = state === "talking";
+export function PassioAvatar({ state, sizePx = 60, mouthLevel }: Props) {
   const halo = state === "listening" || state === "talking";
   const spin = state === "thinking";
+  const effective =
+    typeof mouthLevel === "number" ? mouthLevel : state === "talking" ? 0.3 : 0;
 
   return (
     <div
@@ -67,19 +74,73 @@ export function PassioAvatar({ state, sizePx = 60 }: Props) {
         <circle cx="71" cy="60" r="3.2" fill="#1A0F30" />
         <circle cx="52" cy="58" r="1.2" fill="#FFFFFF" />
         <circle cx="72" cy="58" r="1.2" fill="#FFFFFF" />
-        {/* Mouth */}
-        {mouthOpen ? (
-          <ellipse cx="60" cy="72" rx="5" ry="4" fill="#2A1020" stroke="#FFB84D" strokeWidth="1" />
-        ) : (
-          <path
-            d="M54 72 Q60 76 66 72"
-            stroke="#2A1020"
-            strokeWidth="2"
-            strokeLinecap="round"
-            fill="none"
-          />
-        )}
+        <Mouth level={effective} />
       </svg>
     </div>
+  );
+}
+
+function Mouth({ level }: { level: number }) {
+  // 5 frames: closed, slight, open, wide, widest
+  if (level < 0.05) {
+    return (
+      <path
+        d="M54 72 Q60 76 66 72"
+        stroke="#2A1020"
+        strokeWidth="2"
+        strokeLinecap="round"
+        fill="none"
+      />
+    );
+  }
+  if (level < 0.15) {
+    return (
+      <ellipse
+        cx="60"
+        cy="73"
+        rx="4"
+        ry="1.5"
+        fill="#2A1020"
+        stroke="#FFB84D"
+        strokeWidth="0.6"
+      />
+    );
+  }
+  if (level < 0.35) {
+    return (
+      <ellipse
+        cx="60"
+        cy="73"
+        rx="4.5"
+        ry="2.8"
+        fill="#2A1020"
+        stroke="#FFB84D"
+        strokeWidth="0.8"
+      />
+    );
+  }
+  if (level < 0.6) {
+    return (
+      <ellipse
+        cx="60"
+        cy="73"
+        rx="5"
+        ry="4"
+        fill="#2A1020"
+        stroke="#FFB84D"
+        strokeWidth="1"
+      />
+    );
+  }
+  return (
+    <ellipse
+      cx="60"
+      cy="73"
+      rx="5.5"
+      ry="5"
+      fill="#2A1020"
+      stroke="#FFB84D"
+      strokeWidth="1.2"
+    />
   );
 }

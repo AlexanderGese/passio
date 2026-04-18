@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { chat, voiceApi } from "../ipc";
+import { chat, onChatChunk, voiceApi } from "../ipc";
+import { playWithLipsync } from "../avatar/lipsync";
 import { usePassioStore } from "../store";
 
 /**
@@ -12,11 +13,15 @@ export function ChatPanel() {
   const {
     messages,
     isThinking,
+    streamingText,
     conversationId,
     appendMessage,
     setIsThinking,
+    appendStream,
+    resetStream,
     setConversationId,
     setBubble,
+    setMouthLevel,
     resetConversation,
   } = usePassioStore();
 
@@ -33,7 +38,17 @@ export function ChatPanel() {
   }, []);
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+  }, [messages.length, streamingText]);
+
+  useEffect(() => {
+    const p = onChatChunk((c) => {
+      if (c.done) return;
+      appendStream(c.delta);
+    });
+    return () => {
+      p.then((fn) => fn()).catch(() => {});
+    };
+  }, [appendStream]);
 
   async function send() {
     const prompt = draft.trim();
@@ -41,11 +56,13 @@ export function ChatPanel() {
     setDraft("");
     appendMessage({ role: "user", content: prompt, ts: Date.now() });
     setIsThinking(true);
+    resetStream();
     setBubble("thinking");
     try {
       const res = await chat(prompt, conversationId ?? undefined);
       setConversationId(res.conversationId);
       appendMessage({ role: "assistant", content: res.text, ts: Date.now() });
+      resetStream();
       setBubble("talking");
       setTimeout(() => setBubble("idle"), 1200);
     } catch (err) {
@@ -55,6 +72,7 @@ export function ChatPanel() {
         content: `⚠ ${message}`,
         ts: Date.now(),
       });
+      resetStream();
       setBubble("alert");
       setTimeout(() => setBubble("idle"), 1800);
     } finally {
@@ -126,19 +144,35 @@ export function ChatPanel() {
     appendMessage({ role: "user", content: prompt, ts: Date.now() });
     setDraft("");
     setIsThinking(true);
+    resetStream();
     setBubble("thinking");
     try {
       const res = await chat(prompt, conversationId ?? undefined);
       setConversationId(res.conversationId);
       appendMessage({ role: "assistant", content: res.text, ts: Date.now() });
+      resetStream();
       setBubble("talking");
-      setTimeout(() => setBubble("idle"), 1200);
+      // Voice-in → voice-out: synth TTS and lipsync. If no API key or
+      // network fails, bail silently so text still shows.
+      try {
+        const tts = await voiceApi.synthesize({ text: res.text.slice(0, 2000) });
+        await playWithLipsync({
+          base64: tts.audio_base64,
+          mimeType: tts.mime_type,
+          onLevel: setMouthLevel,
+          onDone: () => setMouthLevel(0),
+        });
+      } catch {
+        /* fine — text path still works */
+      }
+      setTimeout(() => setBubble("idle"), 500);
     } catch (err) {
       appendMessage({
         role: "system",
         content: `⚠ ${(err as Error).message}`,
         ts: Date.now(),
       });
+      resetStream();
       setBubble("alert");
       setTimeout(() => setBubble("idle"), 1800);
     } finally {
@@ -180,7 +214,10 @@ export function ChatPanel() {
         ) : (
           messages.map((m, i) => <Bubble key={`${m.ts}-${i}`} role={m.role} text={m.content} />)
         )}
-        {isThinking && <Bubble role="assistant" text="…" dim />}
+        {isThinking && streamingText.length > 0 && (
+          <Bubble role="assistant" text={streamingText} />
+        )}
+        {isThinking && streamingText.length === 0 && <Bubble role="assistant" text="…" dim />}
       </div>
 
       <div className="mt-2 flex items-end gap-2">

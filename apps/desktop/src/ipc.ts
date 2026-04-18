@@ -159,6 +159,15 @@ export function onScanResult(cb: (r: ScanResult) => void): Promise<UnlistenFn> {
   return listen<ScanResult>("passio://scan-result", (e) => cb(e.payload));
 }
 
+export type ChatChunk = {
+  conversationId: number;
+  delta: string;
+  done: boolean;
+};
+export function onChatChunk(cb: (c: ChatChunk) => void): Promise<UnlistenFn> {
+  return listen<ChatChunk>("passio://chat-chunk", (e) => cb(e.payload));
+}
+
 export type SelectionResult = { kind: "rewrite" | "translate"; ok: boolean; text?: string; error?: string };
 export function onSelectionResult(cb: (r: SelectionResult) => void): Promise<UnlistenFn> {
   return listen<SelectionResult>("passio://selection-result", (e) => cb(e.payload));
@@ -241,6 +250,47 @@ export const policyApi = {
     sidecarCall<{ ok: true }>("passio.policy.setCountdown", { seconds }),
   setBlocklist: (entries: Array<{ kind: string; pattern: string; reason: string }>) =>
     sidecarCall<{ ok: true }>("passio.blocklist.set", { entries }),
+};
+
+export type ChatSearchHit = {
+  id: number;
+  conversationId: number | null;
+  role: string;
+  ts: string;
+  snippet: string;
+  score: number;
+};
+export type ConversationSummary = {
+  id: number;
+  startedAt: string;
+  mode: string | null;
+  messages: number;
+  firstMessage: string | null;
+};
+export type ConversationDetail = {
+  id: number;
+  startedAt: string;
+  messages: Array<{ id: number; ts: string; role: string; content: string }>;
+};
+
+export const chatHistoryApi = {
+  search: (query: string, limit = 20) =>
+    sidecarCall<{ hits: ChatSearchHit[] }>("passio.chat.search", { query, limit }),
+  list: (limit = 20) =>
+    sidecarCall<{ conversations: ConversationSummary[] }>("passio.chat.listConversations", {
+      limit,
+    }),
+  get: (id: number) =>
+    sidecarCall<ConversationDetail | null>("passio.chat.getConversation", { id }),
+};
+
+export const pdfApi = {
+  ingest: (path: string, title?: string, tags?: string) =>
+    sidecarCall<{ noteId: number; pages_guess: number; chars: number }>("passio.pdf.ingest", {
+      path,
+      title,
+      tags,
+    }),
 };
 
 export const automationPrefsApi = {

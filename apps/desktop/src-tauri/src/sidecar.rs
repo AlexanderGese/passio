@@ -56,6 +56,7 @@ pub enum SidecarEvent {
     Crash { reason: String },
     SpawnFailed { reason: String },
     GateRequest(Value),
+    ChatChunk(Value),
 }
 
 pub type EventSink = Arc<dyn Fn(SidecarEvent) + Send + Sync>;
@@ -306,6 +307,11 @@ fn dispatch_notification(notif: RpcNotification, events: &EventSink) {
         "passio.gate.request" => {
             if let Some(params) = notif.params {
                 events(SidecarEvent::GateRequest(params));
+            }
+        }
+        "passio.chat.chunk" => {
+            if let Some(params) = notif.params {
+                events(SidecarEvent::ChatChunk(params));
             }
         }
         other => {

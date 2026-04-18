@@ -8,6 +8,7 @@ import { ChatPanel } from "./ChatPanel";
 import { FirstRunWizard } from "./FirstRunWizard";
 import { FocusPanel } from "./FocusPanel";
 import { GoalsPanel } from "./GoalsPanel";
+import { HistoryPanel } from "./HistoryPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { keychainApi, personaApi } from "../ipc";
 import { useState } from "react";
@@ -129,6 +130,7 @@ export function Bubble() {
           <Tabs />
           <div className="mt-2 min-h-0 flex-1">
             {tab === "chat" && <ChatPanel />}
+            {tab === "history" && <HistoryPanel />}
             {tab === "goals" && <GoalsPanel />}
             {tab === "browser" && <BrowserPanel />}
             {tab === "focus" && <FocusPanel />}
@@ -143,17 +145,22 @@ export function Bubble() {
         className="pointer-events-auto drag-region rounded-full border-0 bg-transparent p-0 transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-passio-pulp focus:ring-offset-2"
         aria-label="Passio bubble — click to expand"
       >
-        <PassioAvatar state={bubble} sizePx={60} />
+        <AvatarWithLevel state={bubble} />
       </button>
     </div>
   );
+}
+
+function AvatarWithLevel({ state }: { state: ReturnType<typeof usePassioStore.getState>["bubble"] }) {
+  const mouthLevel = usePassioStore((s) => s.mouthLevel);
+  return <PassioAvatar state={state} sizePx={60} mouthLevel={mouthLevel} />;
 }
 
 function Tabs() {
   const { tab, setTab } = usePassioStore();
   return (
     <div className="flex gap-1 border-b border-white/5 pb-1 text-xs">
-      {(["chat", "goals", "browser", "focus", "settings"] as const).map((t) => (
+      {(["chat", "history", "goals", "browser", "focus", "settings"] as const).map((t) => (
         <button
           key={t}
           type="button"

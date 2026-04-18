@@ -203,6 +203,22 @@ const DDL = [
      INSERT INTO event_fts(event_fts, rowid, summary, content, tags) VALUES('delete', old.id, coalesce(old.summary, ''), old.content, coalesce(old.tags, ''));
    END`,
 
+  // === Message FTS ===
+  `CREATE VIRTUAL TABLE IF NOT EXISTS message_fts USING fts5(
+     content,
+     content='messages', content_rowid='id'
+   )`,
+  `CREATE TRIGGER IF NOT EXISTS message_ai AFTER INSERT ON messages BEGIN
+     INSERT INTO message_fts(rowid, content) VALUES (new.id, new.content);
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS message_ad AFTER DELETE ON messages BEGIN
+     INSERT INTO message_fts(message_fts, rowid, content) VALUES('delete', old.id, old.content);
+   END`,
+  `CREATE TRIGGER IF NOT EXISTS message_au AFTER UPDATE ON messages BEGIN
+     INSERT INTO message_fts(message_fts, rowid, content) VALUES('delete', old.id, old.content);
+     INSERT INTO message_fts(rowid, content) VALUES (new.id, new.content);
+   END`,
+
   // === Analytics ===
   `CREATE TABLE IF NOT EXISTS habits (
      id INTEGER PRIMARY KEY AUTOINCREMENT,

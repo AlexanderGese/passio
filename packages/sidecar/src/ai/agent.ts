@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateText, stepCountIs, tool } from "ai";
+import { streamText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { Db } from "../db/client.js";
 import type { BridgeServer } from "../bridge/server.js";
@@ -108,7 +108,10 @@ export async function chat(
   const tools = buildTools(db, bridge, bus);
   const persona = getPersona(db);
   const sysPrompt = BASE_SYSTEM_PROMPT.replaceAll("{NAME}", persona.name);
-  const result = await generateText({
+
+  // streamText lets us forward tokens as they arrive so the HUD can
+  // render incrementally. We still collect the full text for DB insertion.
+  const stream = streamText({
     model: openai()(modelName()),
     system: `${sysPrompt}\n\n${contextBlock}`,
     prompt: input.prompt,
@@ -116,19 +119,29 @@ export async function chat(
     stopWhen: stepCountIs(6),
   });
 
+  let full = "";
+  for await (const delta of stream.textStream) {
+    full += delta;
+    emit("passio.chat.chunk", {
+      conversationId: convId,
+      delta,
+      done: false,
+    });
+  }
+
   await db.insert(messages).values({
     conversationId: convId,
     role: "assistant",
-    content: result.text,
+    content: full,
   });
 
   emit("passio.chat.chunk", {
     conversationId: convId,
-    delta: result.text,
+    delta: "",
     done: true,
   });
 
-  return { conversationId: convId, text: result.text };
+  return { conversationId: convId, text: full };
 }
 
 function buildTools(db: Db, bridge?: BridgeServer, bus?: RpcBus) {

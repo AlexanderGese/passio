@@ -43,6 +43,12 @@ import { listCalendarSources, setCalendarSources, upcomingEvents } from "./tools
 import { macroDelete, macroList, macroRun, macroSave } from "./tools/macros.js";
 import { automate } from "./tools/automation.js";
 import { applyCurrentLocation, registerLocation } from "./tools/location.js";
+import {
+  chatGetConversation,
+  chatListConversations,
+  chatSearch,
+} from "./tools/chat_history.js";
+import { pdfIngest } from "./tools/pdf.js";
 import { research } from "./tools/research.js";
 import { secretDelete, secretGet, secretList, secretSet } from "./tools/secrets.js";
 import { sandboxRun } from "./tools/sandbox.js";
@@ -244,6 +250,22 @@ bus.on(RpcMethods.GATE_RESOLVE, async (p: unknown) => {
   bus.resolveGate(id, allowed);
   return { ok: true };
 });
+
+// --- PDF ingestion ---
+bus.on(RpcMethods.PDF_INGEST, async (p: unknown) =>
+  pdfIngest(db, p as Parameters<typeof pdfIngest>[1]),
+);
+
+// --- Chat history ---
+bus.on(RpcMethods.CHAT_SEARCH, async (p: unknown) =>
+  chatSearch(db, p as Parameters<typeof chatSearch>[1]),
+);
+bus.on(RpcMethods.CHAT_LIST_CONVERSATIONS, async (p: unknown) =>
+  chatListConversations(db, (p ?? {}) as Parameters<typeof chatListConversations>[1]),
+);
+bus.on(RpcMethods.CHAT_GET_CONVERSATION, async (p: unknown) =>
+  chatGetConversation(db, p as Parameters<typeof chatGetConversation>[1]),
+);
 
 // --- Automation + Research + Sandbox ---
 bus.on(RpcMethods.AUTOMATE, async (p: unknown) =>
