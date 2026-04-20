@@ -47,6 +47,33 @@ export function registeredTools(): Array<{ seed: string; name: string; descripti
   return out;
 }
 
+/** Returns the seed-declared tabs flagged with `promoteToMainTab` from every
+ *  currently running seed. The HUD renders these alongside its built-ins. */
+export function promotedMainTabs(): Array<{
+  seed: string;
+  id: string;
+  title: string;
+  icon?: string;
+  panel: string;
+}> {
+  const out: Array<{ seed: string; id: string; title: string; icon?: string; panel: string }> = [];
+  for (const [seed, rs] of running) {
+    const tabs = rs.manifest.contributes?.tabs ?? [];
+    for (const t of tabs) {
+      if (t.promoteToMainTab) {
+        out.push({
+          seed,
+          id: t.id,
+          title: t.title,
+          panel: t.panel,
+          ...(t.icon ? { icon: t.icon } : {}),
+        });
+      }
+    }
+  }
+  return out;
+}
+
 export function logsFor(name: string): RunningSeed["logBuffer"] {
   return running.get(name)?.logBuffer ?? [];
 }
@@ -381,6 +408,19 @@ async function handleRpc(
       const { upcomingEvents } = await import("../tools/calendar.js");
       const p = (params ?? {}) as Parameters<typeof upcomingEvents>[1];
       return upcomingEvents(db, p);
+    }
+    case "vault.dailyTodos.sync": {
+      const { items, date } = params as {
+        items: Array<{ text: string; done: boolean }>;
+        date?: string;
+      };
+      const { syncDailyTodosSection } = await import("../vault/daily_todos.js");
+      return syncDailyTodosSection(db, { items, ...(date ? { date } : {}) });
+    }
+    case "vault.dailyTodos.read": {
+      const { date } = (params ?? {}) as { date?: string };
+      const { readDailyTodosSection } = await import("../vault/daily_todos.js");
+      return readDailyTodosSection(db, { ...(date ? { date } : {}) });
     }
     default:
       throw new Error(`unknown host method: ${method}`);

@@ -26,6 +26,11 @@ export const SeedContributesSchema = z
           title: z.string(),
           icon: z.string().optional(),
           panel: z.string(), // relative path to a .js web-component bundle
+          // When true, this tab is promoted to the HUD's main nav bar
+          // alongside Chat/Do/Know/Pulse/Grow/Settings. Only set this for
+          // seeds you'd actually open multiple times a day; the nav bar is
+          // cramped.
+          promoteToMainTab: z.boolean().optional(),
         }),
       )
       .optional(),

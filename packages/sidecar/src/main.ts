@@ -1126,6 +1126,23 @@ bus.on(RpcMethods.SEED_HOTKEYS_LIST, async () => {
   }
   return { hotkeys: out };
 });
+bus.on(RpcMethods.SEED_MAIN_TABS, async () => {
+  const out: Array<{ seed: string; id: string; title: string; icon?: string; panel: string }> = [];
+  for (const row of seedList(db)) {
+    if (!row.enabled) continue;
+    for (const t of row.manifest.contributes.tabs ?? []) {
+      if (!t.promoteToMainTab) continue;
+      out.push({
+        seed: row.name,
+        id: t.id,
+        title: t.title,
+        panel: t.panel,
+        ...(t.icon ? { icon: t.icon } : {}),
+      });
+    }
+  }
+  return { tabs: out };
+});
 
 // Seed updates / data portability / budget alerts
 bus.on(RpcMethods.SEED_CHECK_UPDATES, async () => seedCheckUpdates(db));
