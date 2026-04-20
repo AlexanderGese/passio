@@ -74,3 +74,4 @@ Desktop.ini
 *.tmp
 .cache/
 apps/desktop/src-tauri/resources/passio-sidecar
+.claude/
