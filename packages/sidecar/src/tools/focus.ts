@@ -59,14 +59,16 @@ export function cyclePack(db: Db): { pack: Pack } {
 
 export type ProactiveMode = "check-in" | "active-assist" | "summary-decide";
 export function getProactiveMode(db: Db): ProactiveMode {
-  return readSetting<ProactiveMode>(db, KEYS.proactiveMode, "check-in");
+  // Default shifted from 'check-in' → 'active-assist' in W23 so Passio
+  // behaves ambient-agent by default, not silent-and-waiting.
+  return readSetting<ProactiveMode>(db, KEYS.proactiveMode, "active-assist");
 }
 export function setProactiveMode(db: Db, mode: ProactiveMode): { ok: true } {
   writeSetting(db, KEYS.proactiveMode, mode);
   return { ok: true };
 }
 export function getProactiveInterval(db: Db): number {
-  return readSetting<number>(db, KEYS.proactiveInterval, 10);
+  return readSetting<number>(db, KEYS.proactiveInterval, 7);
 }
 export function setProactiveInterval(db: Db, minutes: number): { ok: true } {
   writeSetting(db, KEYS.proactiveInterval, Math.max(5, Math.min(60, Math.round(minutes))));

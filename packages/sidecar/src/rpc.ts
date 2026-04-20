@@ -23,6 +23,13 @@ export class RpcBus {
     this.handlers.set(method, handler as RpcHandler);
   }
 
+  /** Invoke a registered handler directly — used by the HTTP /rpc bridge. */
+  async invoke(method: string, params: unknown): Promise<unknown> {
+    const handler = this.handlers.get(method);
+    if (!handler) throw new Error(`Unknown method: ${method}`);
+    return handler(params);
+  }
+
   /** Feed raw stdin data. Parses newline-delimited JSON and dispatches. */
   async feed(chunk: string): Promise<void> {
     this.buffer += chunk;
@@ -82,9 +89,17 @@ export class RpcBus {
     }
   }
 
-  /** Send a response or notification to the parent (Rust core). */
+  /** Send a response or notification to the parent (Rust core).
+   *  Swallows EPIPE so a dead parent doesn't crash the sidecar mid-stream. */
   send(msg: RpcMessage): void {
-    process.stdout.write(`${JSON.stringify(msg)}\n`);
+    try {
+      process.stdout.write(`${JSON.stringify(msg)}\n`);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException | undefined)?.code;
+      if (code === "EPIPE") {
+        process.exit(0);
+      }
+    }
   }
 
   notify(method: string, params?: unknown): void {

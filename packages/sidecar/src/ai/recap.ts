@@ -98,6 +98,19 @@ export async function dailyRecap(
     importance: 4,
   });
 
+  // Mirror into the configured Obsidian daily note when a vault is set.
+  try {
+    const vaultRow = db.$raw
+      .query("SELECT value FROM settings WHERE key = 'obsidian_vault_path'")
+      .get() as { value: string } | undefined;
+    if (vaultRow) {
+      const { dailyNoteAppendRecap } = await import("../vault/tools.js");
+      await dailyNoteAppendRecap(db, { body: recap, date: dateStr });
+    }
+  } catch {
+    /* best-effort */
+  }
+
   return { dateStr, recap };
 }
 

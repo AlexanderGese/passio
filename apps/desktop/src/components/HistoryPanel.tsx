@@ -38,28 +38,28 @@ export function HistoryPanel() {
 
   if (open) {
     return (
-      <div className="flex h-full flex-col text-xs">
+      <div className="flex h-full flex-col text-[14px]">
         <div className="mb-2 flex items-center justify-between">
-          <span className="uppercase tracking-wide text-neutral-400">
+          <span className="uppercase tracking-wide text-neutral-200">
             conversation #{open.id}
           </span>
           <button
             type="button"
             onClick={() => setOpen(null)}
-            className="rounded-md bg-black/30 px-2 py-0.5 hover:bg-passio-skinLight/30"
+            className="rounded-md bg-[#1A1422] px-2 py-0.5 hover:bg-passio-skinLight/30"
           >
             back
           </button>
         </div>
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-lg bg-black/20 p-2">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-lg bg-[#120E1A] p-2">
           {open.messages.map((m) => (
             <div
               key={m.id}
               className={clsx(
-                "max-w-[90%] whitespace-pre-wrap rounded-xl px-3 py-1.5 text-[11px] leading-snug",
+                "max-w-[90%] whitespace-pre-wrap rounded-xl px-3 py-1.5 text-[14px] leading-snug",
                 m.role === "user"
                   ? "ml-auto bg-passio-skinLight/25 text-neutral-100"
-                  : "bg-neutral-800/80 text-neutral-100",
+                  : "bg-[#2E2340] text-neutral-100",
               )}
             >
               {m.content}
@@ -71,12 +71,12 @@ export function HistoryPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 text-xs">
+    <div className="flex h-full flex-col gap-2 text-[14px]">
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="search your chats…"
-        className="no-drag rounded-lg border border-white/10 bg-black/40 p-2 focus:border-passio-pulp focus:outline-none"
+        className="no-drag rounded-lg border border-passio-border bg-[#241B30] p-2 focus:border-passio-pulp focus:outline-none"
       />
       <div className="min-h-0 flex-1 overflow-y-auto">
         {hits !== null ? (
@@ -97,7 +97,7 @@ function SearchResults({
   onOpen: (id: number) => void;
 }) {
   if (hits.length === 0) {
-    return <p className="mt-2 text-[11px] text-neutral-500">no matches</p>;
+    return <p className="mt-2 text-[14px] text-neutral-300">no matches</p>;
   }
   return (
     <ul className="space-y-1">
@@ -107,14 +107,14 @@ function SearchResults({
             type="button"
             onClick={() => h.conversationId && onOpen(h.conversationId)}
             disabled={h.conversationId === null}
-            className="w-full rounded-md bg-black/30 px-2 py-1.5 text-left hover:bg-passio-skinLight/20 disabled:opacity-40"
+            className="w-full rounded-md bg-[#1A1422] px-2 py-1.5 text-left hover:bg-passio-skinLight/20 disabled:opacity-40"
           >
-            <div className="flex items-center justify-between text-[10px] text-neutral-500">
+            <div className="flex items-center justify-between text-[14px] text-neutral-300">
               <span>{h.role}</span>
               <span>{new Date(h.ts).toLocaleString()}</span>
             </div>
             <div
-              className="mt-0.5 text-[11px] leading-snug"
+              className="mt-0.5 text-[14px] leading-snug"
               dangerouslySetInnerHTML={{ __html: h.snippet }}
             />
           </button>
@@ -132,7 +132,7 @@ function Recent({
   onOpen: (id: number) => void;
 }) {
   if (conversations.length === 0) {
-    return <p className="mt-2 text-[11px] text-neutral-500">no past conversations yet</p>;
+    return <p className="mt-2 text-[14px] text-neutral-300">no past conversations yet</p>;
   }
   return (
     <ul className="space-y-1">
@@ -141,15 +141,15 @@ function Recent({
           <button
             type="button"
             onClick={() => onOpen(c.id)}
-            className="w-full rounded-md bg-black/30 px-2 py-1.5 text-left hover:bg-passio-skinLight/20"
+            className="w-full rounded-md bg-[#1A1422] px-2 py-1.5 text-left hover:bg-passio-skinLight/20"
           >
-            <div className="flex items-center justify-between text-[10px] text-neutral-500">
+            <div className="flex items-center justify-between text-[14px] text-neutral-300">
               <span>
                 {c.mode ?? "text"} · {c.messages} msg
               </span>
               <span>{new Date(c.startedAt).toLocaleString()}</span>
             </div>
-            <p className="mt-0.5 truncate text-[11px] text-neutral-300">
+            <p className="mt-0.5 truncate text-[14px] text-neutral-300">
               {c.firstMessage ?? "(empty)"}
             </p>
           </button>

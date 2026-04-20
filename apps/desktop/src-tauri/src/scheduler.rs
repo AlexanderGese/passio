@@ -80,6 +80,146 @@ impl Scheduler {
                 tokio::time::sleep(Duration::from_secs(120)).await;
             }
         });
+
+        // Deadline radar — every 30 min, flag milestones due in the next
+        // 48h. The sidecar handler emits a bubble_state alert when a hit
+        // is found, so the HUD surfaces it as a speech bubble.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            // small initial delay so we don't fire during startup burst
+            tokio::time::sleep(Duration::from_secs(60)).await;
+            loop {
+                tracing::debug!("scheduler tick: deadline radar");
+                if let Err(e) = sidecar.call("passio.radar.check", json!({})).await {
+                    tracing::debug!(error = %e, "radar check failed (usually: no key / no goals)");
+                }
+                tokio::time::sleep(Duration::from_secs(30 * 60)).await;
+            }
+        });
+
+        // Daily todo reminder @ 09:00 local + opportunistic Todo.md sync.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            // sync once at startup so the file reflects DB truth
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            let _ = sidecar.call("passio.todoMd.sync", json!({})).await;
+            loop {
+                let wait = seconds_until_next_local_hour(9);
+                tokio::time::sleep(Duration::from_secs(wait.max(60))).await;
+                tracing::info!("scheduler tick: daily todo reminder");
+                if let Err(e) = sidecar.call("passio.todos.topToday", json!({})).await {
+                    tracing::warn!(error = %e, "todos topToday failed");
+                }
+                let _ = sidecar.call("passio.todoMd.sync", json!({})).await;
+                tokio::time::sleep(Duration::from_secs(120)).await;
+            }
+        });
+
+        // Ambient activity tracker — every 60s snapshot top procs +
+        // active window and log to activity_log.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(45)).await;
+            loop {
+                if let Err(e) = sidecar.call("passio.system.snapshot", json!({})).await {
+                    tracing::debug!(error = %e, "system snapshot skipped");
+                }
+                tokio::time::sleep(Duration::from_secs(60)).await;
+            }
+        });
+
+        // Initiative pulse — every 15 min, LLM decides if Passio has
+        // something worth saying without being asked. Biased to silence.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(300)).await;
+            loop {
+                let _ = sidecar.call("passio.initiative.pulse", json!({})).await;
+                tokio::time::sleep(Duration::from_secs(15 * 60)).await;
+            }
+        });
+
+        // Distraction check — every 5 min, nudge if the user has been
+        // on distracting apps for 25+ consecutive minutes.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(180)).await;
+            loop {
+                let _ = sidecar
+                    .call("passio.system.distractionCheck", json!({}))
+                    .await;
+                tokio::time::sleep(Duration::from_secs(5 * 60)).await;
+            }
+        });
+
+        // Passive Todo.md re-sync every 15 min — picks up markdown edits
+        // made in Obsidian / Notion / any editor.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(90)).await;
+            loop {
+                if let Err(e) = sidecar.call("passio.todoMd.sync", json!({})).await {
+                    tracing::debug!(error = %e, "todoMd sync skipped");
+                }
+                tokio::time::sleep(Duration::from_secs(15 * 60)).await;
+            }
+        });
+
+        // Budget check — every hour, trigger bubble alert if crossed.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(300)).await;
+            loop {
+                let _ = sidecar.call("passio.cost.budget.check", json!({})).await;
+                tokio::time::sleep(Duration::from_secs(3600)).await;
+            }
+        });
+
+        // Nightly reflection @ 22:00 local.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            loop {
+                let wait = seconds_until_next_local_hour(22);
+                tokio::time::sleep(Duration::from_secs(wait.max(60))).await;
+                tracing::info!("scheduler tick: nightly reflection");
+                if let Err(e) = sidecar.call("passio.reflection.run", json!({})).await {
+                    tracing::warn!(error = %e, "reflection run failed");
+                }
+                tokio::time::sleep(Duration::from_secs(120)).await;
+            }
+        });
+
+        // Sitting nudge — every 20 min, remind to stretch if >90 min straight.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(600)).await;
+            loop {
+                let _ = sidecar.call("passio.system.sittingNudge", json!({})).await;
+                tokio::time::sleep(Duration::from_secs(20 * 60)).await;
+            }
+        });
+
+        // Unlock / morning briefing — poll every 60s for a locked→unlocked
+        // transition; if it happens before 10:00, speak today's plan.
+        let sidecar = self.sidecar.clone();
+        async_runtime::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            loop {
+                if let Ok(v) = sidecar.call("passio.system.unlockCheck", json!({})).await {
+                    let first = v.get("firstSinceLock").and_then(|x| x.as_bool()).unwrap_or(false);
+                    if first {
+                        let hour = Local::now().hour();
+                        if hour < 10 {
+                            tracing::info!("unlock-triggered morning briefing");
+                            if let Err(e) = sidecar.call("passio.morningBriefing", json!({})).await {
+                                tracing::debug!(error = %e, "unlock briefing skipped");
+                            }
+                        }
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(60)).await;
+            }
+        });
     }
 
     pub async fn set_interval_minutes(&self, m: u64) {

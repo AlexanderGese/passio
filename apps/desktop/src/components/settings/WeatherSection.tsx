@@ -38,9 +38,9 @@ export function WeatherSection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="Location">
-        <p className="mb-2 text-[11px] text-neutral-400">
+    <div className="space-y-2 text-[14px]">
+      <Section label="Location" hint="Used by the morning briefing to show today's weather. Free open-meteo API — no key needed.">
+        <p className="mb-2 text-[14px] text-neutral-200">
           Used by the morning briefing. Free open-meteo API — no key needed.
         </p>
         <div className="grid grid-cols-2 gap-2">
@@ -48,19 +48,19 @@ export function WeatherSection() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Berlin"
-            className="no-drag col-span-2 rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag col-span-2 rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
           <input
             value={lat}
             onChange={(e) => setLat(e.target.value)}
             placeholder="latitude"
-            className="no-drag rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
           <input
             value={lon}
             onChange={(e) => setLon(e.target.value)}
             placeholder="longitude"
-            className="no-drag rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
         </div>
         <div className="mt-2 flex gap-1">
@@ -81,7 +81,7 @@ export function WeatherSection() {
             </button>
           )}
         </div>
-        {status && <p className="mt-2 text-[11px] text-emerald-300">{status}</p>}
+        {status && <p className="mt-2 text-[14px] text-emerald-300">{status}</p>}
       </Section>
       {current && (
         <Section label="Current">

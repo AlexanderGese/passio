@@ -1,0 +1,43 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "lastfm-scrobble",
+  "version": "0.1.0",
+  "description": "Total scrobbles today for a user — no write, just vibe.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "ws.audioscrobbler.com"
+    ],
+    "secrets": [
+      "lastfm_key"
+    ]
+  },
+  "contributes": {
+    "widgets": [
+      {
+        "id": "lastfm-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 300
+      }
+    ],
+    "tools": [
+      "today"
+    ],
+    "settings": [
+      {
+        "id": "user",
+        "label": "last.fm username",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  }
+}

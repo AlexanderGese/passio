@@ -1,0 +1,22 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "pomodoro-chip-seed",
+  "version": "0.1.0",
+  "description": "Header chip that starts/stops a pomodoro with a click. Talks to the built-in timer.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "widgets": [
+      {
+        "id": "pomodoro-chip-seed-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "toggle"
+    ]
+  }
+}

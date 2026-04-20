@@ -76,7 +76,7 @@ export function FocusPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 overflow-y-auto text-xs">
+    <div className="flex h-full flex-col gap-2 overflow-y-auto text-[14px]">
       <Section label="Context pack">
         <div className="flex gap-1">
           {(["work", "study", "chill", "custom"] as Pack[]).map((p) => (
@@ -91,7 +91,7 @@ export function FocusPanel() {
                 "flex-1 rounded-md px-2 py-1",
                 pack === p
                   ? "bg-passio-pulp/80 text-black"
-                  : "bg-black/30 text-neutral-400 hover:text-neutral-100",
+                  : "bg-[#1A1422] text-neutral-200 hover:text-neutral-100",
               )}
             >
               {p}
@@ -112,10 +112,10 @@ export function FocusPanel() {
                   setMode(m);
                 }}
                 className={clsx(
-                  "flex-1 rounded-md px-2 py-1 text-[10px]",
+                  "flex-1 rounded-md px-2 py-1 text-[14px]",
                   mode === m
                     ? "bg-passio-skinLight/40 text-passio-pulp"
-                    : "bg-black/30 text-neutral-400 hover:text-neutral-100",
+                    : "bg-[#1A1422] text-neutral-200 hover:text-neutral-100",
                 )}
               >
                 {m}
@@ -123,7 +123,7 @@ export function FocusPanel() {
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-neutral-500">every</span>
+            <span className="text-neutral-300">every</span>
             <input
               type="number"
               min={5}
@@ -134,9 +134,9 @@ export function FocusPanel() {
                 await proactiveApi.set({ interval_min: v });
                 setIntervalMin(v);
               }}
-              className="no-drag w-16 rounded-md border border-white/10 bg-black/40 p-1"
+              className="no-drag w-16 rounded-md border border-passio-border bg-[#241B30] p-1"
             />
-            <span className="text-neutral-500">min</span>
+            <span className="text-neutral-300">min</span>
           </div>
         </div>
       </Section>
@@ -151,7 +151,7 @@ export function FocusPanel() {
             }}
             className={clsx(
               "flex-1 rounded-md px-2 py-1",
-              dndActive ? "bg-red-500/30 text-red-200" : "bg-black/30 text-neutral-400 hover:text-neutral-100",
+              dndActive ? "bg-red-500/30 text-red-200" : "bg-[#1A1422] text-neutral-200 hover:text-neutral-100",
             )}
           >
             {dndActive ? "DND on — silence until " + new Date(dndUntil!).toLocaleTimeString() : "DND off"}
@@ -168,7 +168,7 @@ export function FocusPanel() {
             <button
               type="button"
               onClick={async () => setFocus(await focusApi.stop())}
-              className="rounded-md bg-black/40 px-2 py-1 text-neutral-300 hover:text-white"
+              className="rounded-md bg-[#241B30] px-2 py-1 text-neutral-300 hover:text-white"
             >
               stop
             </button>
@@ -180,7 +180,7 @@ export function FocusPanel() {
                 key={mins}
                 type="button"
                 onClick={async () => setFocus(await focusApi.start(mins))}
-                className="flex-1 rounded-md bg-black/30 px-2 py-1 hover:bg-passio-skinLight/30"
+                className="flex-1 rounded-md bg-[#1A1422] px-2 py-1 hover:bg-passio-skinLight/30"
               >
                 {mins}m
               </button>
@@ -195,7 +195,7 @@ export function FocusPanel() {
             type="button"
             onClick={runBriefing}
             disabled={busy}
-            className="flex-1 rounded-md bg-black/30 px-2 py-1 hover:bg-passio-skinLight/30 disabled:opacity-40"
+            className="flex-1 rounded-md bg-[#1A1422] px-2 py-1 hover:bg-passio-skinLight/30 disabled:opacity-40"
           >
             morning
           </button>
@@ -203,13 +203,13 @@ export function FocusPanel() {
             type="button"
             onClick={runRecap}
             disabled={busy}
-            className="flex-1 rounded-md bg-black/30 px-2 py-1 hover:bg-passio-skinLight/30 disabled:opacity-40"
+            className="flex-1 rounded-md bg-[#1A1422] px-2 py-1 hover:bg-passio-skinLight/30 disabled:opacity-40"
           >
             recap
           </button>
         </div>
         {briefing && (
-          <pre className="mt-2 whitespace-pre-wrap rounded-md bg-black/40 p-2 text-[11px] font-sans text-neutral-200">
+          <pre className="mt-2 whitespace-pre-wrap rounded-md bg-[#241B30] p-2 text-[14px] font-sans text-neutral-200">
             {briefing}
           </pre>
         )}
@@ -220,8 +220,8 @@ export function FocusPanel() {
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-black/20 p-2">
-      <p className="mb-1 text-[10px] uppercase tracking-wide text-neutral-500">{label}</p>
+    <div className="rounded-lg bg-[#120E1A] p-2">
+      <p className="mb-1 text-[14px] uppercase tracking-wide text-neutral-300">{label}</p>
       {children}
     </div>
   );

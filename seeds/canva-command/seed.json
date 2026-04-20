@@ -1,0 +1,20 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "canva-command",
+  "version": "0.1.0",
+  "description": "Canva Connect — create designs from briefs, export, update. $49.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-canva-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["api.canva.com"], "secrets": ["access_token"] },
+  "contributes": {
+    "tools": ["me","designs","design","design_create","autofill_create","export"],
+    "tabs": [{ "id": "canva-command-panel", "title": "Canva", "icon": "🎨", "panel": "./panel.js" }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "access_token", "label": "Canva Connect access token", "type": "secret" }
+    ]
+  }
+}

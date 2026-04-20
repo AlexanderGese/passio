@@ -1,0 +1,28 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "moon-phase",
+  "version": "0.1.0",
+  "description": "Tiny moon glyph + phase name in the header. Updated hourly.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "widgets": [
+      {
+        "id": "moon-phase-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 3600
+      }
+    ],
+    "tools": [
+      "phase"
+    ]
+  }
+}

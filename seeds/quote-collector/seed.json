@@ -1,0 +1,15 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "quote-collector",
+  "version": "0.1.0",
+  "description": "Save + tag quotes from anywhere. Later searchable through memory.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "add"
+    ]
+  }
+}

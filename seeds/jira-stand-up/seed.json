@@ -1,0 +1,30 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "jira-stand-up",
+  "version": "0.1.0",
+  "description": "Yesterday/today/blockers output from Jira for the daily scrum. Stub — add your instance.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "*"
+    ],
+    "secrets": [
+      "jira_token"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "check"
+    ],
+    "settings": [
+      {
+        "id": "host",
+        "label": "Jira host",
+        "type": "string",
+        "default": "your.atlassian.net"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "time-box-timer",
+  "version": "0.1.0",
+  "description": "50-min focus + 10-min break cycles with gentle speech cues.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "start",
+      "stop"
+    ]
+  }
+}

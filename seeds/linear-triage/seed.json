@@ -1,0 +1,36 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "linear-triage",
+  "version": "0.1.0",
+  "description": "Your assigned Linear issues in a tab. Needs a Linear API key.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "api.linear.app"
+    ],
+    "secrets": [
+      "linear_key"
+    ]
+  },
+  "contributes": {
+    "tabs": [
+      {
+        "id": "linear-panel",
+        "title": "Linear",
+        "icon": "📐",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "check"
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 600
+      }
+    ]
+  }
+}

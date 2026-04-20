@@ -1,0 +1,33 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "timezone-ring",
+  "version": "0.1.0",
+  "description": "3 city clocks in a header row — perfect for distributed teams.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "widgets": [
+      {
+        "id": "timezone-ring-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 30
+      }
+    ],
+    "settings": [
+      {
+        "id": "zones",
+        "label": "Zones (comma)",
+        "type": "string",
+        "default": "UTC,America/New_York,Asia/Tokyo"
+      }
+    ]
+  }
+}

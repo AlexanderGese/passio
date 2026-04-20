@@ -1,7 +1,9 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Passionfruit color palette — pulled from the v1 avatar art.
+ * Passionfruit palette + typography scale. W21 redesign: bumped the base
+ * size to 15px, introduced pulpBright/borderBright for contrast, and a
+ * panel shadow preset so nested cards feel crisp against the dark bg.
  */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
@@ -9,21 +11,34 @@ export default {
     extend: {
       colors: {
         passio: {
-          skin: "#5B2A86",
-          skinLight: "#8B3FA0",
+          skin: "#6B3A9E",
+          skinLight: "#A855F7",
           pulp: "#FFB84D",
+          pulpBright: "#FFD073",
           cream: "#FFF4E0",
           leaf: "#7FB685",
           seed: "#2A1810",
+          bg: "#0E0A14",
+          panel: "#1A1422",
+          panelAlt: "#241B30",
+          border: "#3A2E4C",
+          borderBright: "#5A4670",
         },
       },
       fontFamily: {
-        sans: [
-          "'JetBrains Mono'",
-          "'Inter'",
-          "system-ui",
-          "sans-serif",
-        ],
+        sans: ["'Inter'", "system-ui", "sans-serif"],
+        mono: ["'JetBrains Mono'", "ui-monospace", "monospace"],
+      },
+      fontSize: {
+        tiny: ["12px", "16px"],
+        small: ["13px", "18px"],
+        base: ["15px", "22px"],
+        h3: ["17px", "24px"],
+        h2: ["20px", "28px"],
+      },
+      boxShadow: {
+        panel:
+          "0 20px 48px -12px rgba(0,0,0,0.65), 0 0 0 1px rgba(168,85,247,0.18)",
       },
       animation: {
         "pulse-halo": "pulse-halo 2s ease-in-out infinite",

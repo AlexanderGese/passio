@@ -1,0 +1,36 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "birthdays",
+  "version": "0.1.0",
+  "description": "Paste birthdays once (name + MM-DD). Morning chip when one is today.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "widgets": [
+      {
+        "id": "birthdays-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "morning",
+        "every_seconds": 3600
+      }
+    ],
+    "tools": [
+      "today"
+    ],
+    "settings": [
+      {
+        "id": "list",
+        "label": "name|MM-DD per line",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  }
+}

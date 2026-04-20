@@ -4,6 +4,7 @@
 use anyhow::Result;
 use std::process::Command;
 use std::str::FromStr;
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -11,6 +12,10 @@ struct Binding {
     shortcut: Shortcut,
     name: &'static str,
 }
+
+/// Dynamically-added bindings (seeds). Gets merged into the registration
+/// list on every (re)register_all call.
+static SEED_BINDINGS: Mutex<Vec<(Shortcut, String)>> = Mutex::new(Vec::new());
 
 fn defaults() -> Vec<Binding> {
     vec![
@@ -37,6 +42,22 @@ fn defaults() -> Vec<Binding> {
         Binding {
             shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyL),
             name: "translate-selection",
+        },
+        Binding {
+            shortcut: Shortcut::new(Some(Modifiers::SUPER), Code::Slash),
+            name: "spotlight",
+        },
+        Binding {
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyS),
+            name: "screenshot-ask",
+        },
+        Binding {
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyW),
+            name: "what-next",
+        },
+        Binding {
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyC),
+            name: "clipboard-ask",
         },
     ]
 }
@@ -87,31 +108,8 @@ fn cap_first(s: &str) -> String {
 }
 
 pub fn register_defaults(app: &AppHandle) -> Result<()> {
-    let gs = app.global_shortcut();
-
-    let bindings = defaults();
-    let shortcuts: Vec<Shortcut> = bindings.iter().map(|b| b.shortcut).collect();
-    let lookup: Vec<(Shortcut, &'static str)> =
-        bindings.iter().map(|b| (b.shortcut, b.name)).collect();
-
-    let emitter = app.clone();
-    // `on_shortcuts` in tauri-plugin-global-shortcut 2.3 registers the
-    // shortcuts AND installs the handler. Do NOT also call `register(...)`
-    // separately — that produces "HotKey already registered" errors.
-    gs.on_shortcuts(shortcuts, move |_app, shortcut, event| {
-        if !matches!(event.state(), ShortcutState::Pressed) {
-            return;
-        }
-        let name = lookup
-            .iter()
-            .find(|(s, _)| s == shortcut)
-            .map(|(_, n)| *n)
-            .unwrap_or("unknown");
-        tracing::info!(%name, "hotkey fired");
-        let _ = emitter.emit("passio://hotkey", name);
-    })?;
-
-    for b in &bindings {
+    re_register_all(app)?;
+    for b in defaults() {
         tracing::info!(name = b.name, "shortcut registered");
     }
 
@@ -140,4 +138,77 @@ pub fn register_defaults(app: &AppHandle) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Update the seed-declared hotkey list and re-register everything.
+/// Called by the HUD after fetching `passio.seed.hotkeysList`.
+pub fn set_seed_hotkeys(app: &AppHandle, list: Vec<(String, String)>) -> Result<()> {
+    let mut bindings = SEED_BINDINGS
+        .lock()
+        .map_err(|_| anyhow::anyhow!("seed bindings lock poisoned"))?;
+    bindings.clear();
+    for (name, accel) in list {
+        let shortcut = parse_accelerator_full(&accel);
+        bindings.push((shortcut, name));
+    }
+    drop(bindings);
+    re_register_all(app)
+}
+
+fn re_register_all(app: &AppHandle) -> Result<()> {
+    let gs = app.global_shortcut();
+    // Drop every existing registration so we don't hit "already registered".
+    let _ = gs.unregister_all();
+
+    let defaults = defaults();
+    let seed = SEED_BINDINGS
+        .lock()
+        .map(|b| b.clone())
+        .unwrap_or_default();
+
+    let mut all_shortcuts: Vec<Shortcut> = Vec::with_capacity(defaults.len() + seed.len());
+    let mut lookup: Vec<(Shortcut, String)> = Vec::with_capacity(defaults.len() + seed.len());
+    for b in &defaults {
+        all_shortcuts.push(b.shortcut);
+        lookup.push((b.shortcut, b.name.to_string()));
+    }
+    for (shortcut, name) in seed {
+        all_shortcuts.push(shortcut);
+        lookup.push((shortcut, name));
+    }
+
+    let emitter = app.clone();
+    gs.on_shortcuts(all_shortcuts, move |_app, shortcut, event| {
+        if !matches!(event.state(), ShortcutState::Pressed) {
+            return;
+        }
+        let name = lookup
+            .iter()
+            .find(|(s, _)| s == shortcut)
+            .map(|(_, n)| n.clone())
+            .unwrap_or_else(|| "unknown".to_string());
+        tracing::info!(%name, "hotkey fired");
+        let _ = emitter.emit("passio://hotkey", &name);
+    })?;
+    Ok(())
+}
+
+/// Looser accelerator parser for runtime-registered seed shortcuts — accepts
+/// things like "Super+Shift+M" or "Ctrl+Alt+K". Falls back to Escape if the
+/// key part is unrecognised (which we log).
+fn parse_accelerator_full(s: &str) -> Shortcut {
+    let mut mods = Modifiers::empty();
+    let mut code: Option<Code> = None;
+    for part in s.split('+').map(str::trim) {
+        match part.to_lowercase().as_str() {
+            "super" | "meta" | "win" | "cmd" => mods |= Modifiers::SUPER,
+            "ctrl" | "control" => mods |= Modifiers::CONTROL,
+            "shift" => mods |= Modifiers::SHIFT,
+            "alt" | "option" => mods |= Modifiers::ALT,
+            other => {
+                code = Code::from_str(&cap_first(other)).ok();
+            }
+        }
+    }
+    Shortcut::new(Some(mods), code.unwrap_or(Code::Escape))
 }

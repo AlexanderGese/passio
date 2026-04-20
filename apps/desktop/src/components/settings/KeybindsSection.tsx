@@ -47,11 +47,11 @@ export function KeybindsSection() {
     setDraft(next);
   }
 
-  if (!binds) return <p className="text-[11px] text-neutral-500">loading…</p>;
+  if (!binds) return <p className="text-[14px] text-neutral-300">loading…</p>;
   const dirty = Object.keys(binds).some((k) => binds[k] !== draft[k]);
 
   return (
-    <Section label="Keybinds">
+    <Section label="Keybinds" hint="Every Passio hotkey. Click a binding to capture new keys; restart Passio to apply.">
       <ul className="space-y-1">
         {Object.entries(draft).map(([action, accel]) => (
           <li key={action} className="flex items-center justify-between gap-2">
@@ -59,10 +59,10 @@ export function KeybindsSection() {
             <button
               type="button"
               onClick={() => startCapture(action)}
-              className={`no-drag rounded-md border px-2 py-0.5 text-[11px] font-mono ${
+              className={`no-drag rounded-md border px-2 py-0.5 text-[14px] font-mono ${
                 capturing === action
                   ? "border-passio-pulp bg-passio-pulp/20 text-passio-pulp"
-                  : "border-white/10 bg-black/40 hover:border-passio-pulp/40"
+                  : "border-passio-border bg-[#241B30] hover:border-passio-pulp/40"
               }`}
             >
               {capturing === action ? "press keys…" : accel}
@@ -72,7 +72,7 @@ export function KeybindsSection() {
       </ul>
       {dirty && (
         <div className="mt-2 flex items-center justify-between">
-          <span className="text-[10px] text-amber-300">
+          <span className="text-[14px] text-amber-300">
             restart Passio to apply new bindings
           </span>
           <button

@@ -1,0 +1,33 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "current-sprint-day",
+  "version": "0.1.0",
+  "description": "Chip showing \"day 3/14\" of your current sprint. Configure sprint length + start.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "widgets": [
+      {
+        "id": "current-sprint-day-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "settings": [
+      {
+        "id": "start",
+        "label": "Sprint start date (YYYY-MM-DD)",
+        "type": "string",
+        "default": "2026-04-14"
+      },
+      {
+        "id": "days",
+        "label": "Sprint length in days",
+        "type": "number",
+        "default": 14
+      }
+    ]
+  }
+}

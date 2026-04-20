@@ -40,8 +40,8 @@ describe("focus + settings helpers", () => {
 
   test("proactive mode + interval default then update", () => {
     const db = tempDb("proactive");
-    expect(getProactiveMode(db)).toBe("check-in");
-    expect(getProactiveInterval(db)).toBe(10);
+    expect(getProactiveMode(db)).toBe("active-assist");
+    expect(getProactiveInterval(db)).toBe(7);
     setProactiveMode(db, "active-assist");
     setProactiveInterval(db, 90); // clamped
     expect(getProactiveMode(db)).toBe("active-assist");

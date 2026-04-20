@@ -1,0 +1,20 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "youtube-command",
+  "version": "0.1.0",
+  "description": "YouTube Data API remote — upload initiate, edit metadata, comments, captions, playlists, analytics. $59.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-youtube-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["www.googleapis.com", "youtube.googleapis.com"], "secrets": ["access_token"] },
+  "contributes": {
+    "tools": ["me","my_videos","video","update_video","delete_video","comment_post","comments_list","captions","playlist_create","playlist_add","playlist_remove"],
+    "tabs": [{ "id": "youtube-command-panel", "title": "YouTube", "icon": "▶", "panel": "./panel.js" }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "access_token", "label": "OAuth access token", "type": "secret" }
+    ]
+  }
+}

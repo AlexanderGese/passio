@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#2a1a40"/>
+      <stop offset="100%" stop-color="#120E1A"/>
+    </radialGradient>
+    <radialGradient id="rind" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="70%" stop-color="#4c1d95"/>
+      <stop offset="100%" stop-color="#2a0f5e"/>
+    </radialGradient>
+    <radialGradient id="pulp" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffe27a"/>
+      <stop offset="60%" stop-color="#ffb84d"/>
+      <stop offset="100%" stop-color="#d07a2a"/>
+    </radialGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bg)"/>
+  <!-- Outer rind -->
+  <circle cx="256" cy="268" r="170" fill="url(#rind)"/>
+  <!-- White pith ring -->
+  <circle cx="256" cy="268" r="148" fill="#f6e4d8"/>
+  <!-- Pulp -->
+  <circle cx="256" cy="268" r="136" fill="url(#pulp)"/>
+  <!-- Seeds scattered -->
+  <g fill="#3a2405">
+    <ellipse cx="220" cy="220" rx="10" ry="14" transform="rotate(-20 220 220)"/>
+    <ellipse cx="280" cy="210" rx="10" ry="14" transform="rotate(15 280 210)"/>
+    <ellipse cx="310" cy="260" rx="10" ry="14" transform="rotate(45 310 260)"/>
+    <ellipse cx="290" cy="310" rx="10" ry="14" transform="rotate(-30 290 310)"/>
+    <ellipse cx="220" cy="310" rx="10" ry="14" transform="rotate(30 220 310)"/>
+    <ellipse cx="195" cy="260" rx="10" ry="14" transform="rotate(-10 195 260)"/>
+    <ellipse cx="255" cy="265" rx="10" ry="14"/>
+    <ellipse cx="250" cy="330" rx="10" ry="14"/>
+  </g>
+  <!-- Highlight on the rind -->
+  <path d="M 130 190 Q 190 140, 260 130" stroke="rgba(255,255,255,0.25)" stroke-width="14" fill="none" stroke-linecap="round"/>
+</svg>

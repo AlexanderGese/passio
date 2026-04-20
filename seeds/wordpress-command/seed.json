@@ -1,0 +1,22 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "wordpress-command",
+  "version": "0.1.0",
+  "description": "WordPress REST API remote — posts, media, categories, comments, user ops. $29.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-wordpress-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["*"], "secrets": ["username", "app_password"] },
+  "contributes": {
+    "tools": ["posts","post","post_create","post_update","post_delete","publish","schedule","media","categories","comments"],
+    "tabs": [{ "id": "wordpress-command-panel", "title": "WordPress", "icon": "Ⓦ", "panel": "./panel.js" }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "site_url", "label": "Site URL", "type": "string", "default": "https://your.wordpress.site" },
+      { "id": "username", "label": "Username", "type": "string" },
+      { "id": "app_password", "label": "Application password", "type": "secret" }
+    ]
+  }
+}

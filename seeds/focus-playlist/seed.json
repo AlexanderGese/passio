@@ -1,0 +1,23 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "focus-playlist",
+  "version": "0.1.0",
+  "description": "One-click trigger for a saved Spotify playlist URI (needs your Spotify URL).",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "open"
+    ],
+    "settings": [
+      {
+        "id": "url",
+        "label": "Playlist URL",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  }
+}

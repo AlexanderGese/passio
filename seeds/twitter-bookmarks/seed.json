@@ -1,0 +1,27 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "twitter-bookmarks",
+  "version": "0.1.0",
+  "description": "Pull your Twitter bookmarks via a self-hosted rss-bridge endpoint.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "*"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "latest"
+    ],
+    "settings": [
+      {
+        "id": "bridge_url",
+        "label": "rss-bridge bookmarks URL",
+        "type": "string",
+        "default": ""
+      }
+    ]
+  }
+}

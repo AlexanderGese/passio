@@ -92,18 +92,47 @@ export async function todoDone(db: Db, input: { id: number }): Promise<{ ok: tru
 export async function noteSave(
   db: Db,
   input: { title?: string; body: string; tags?: string },
-): Promise<{ id: number }> {
+): Promise<{ id: number; vaultPath?: string }> {
+  // Mirror to the Obsidian vault when one is configured. The vault copy is
+  // the source of truth the user can edit in Obsidian; the DB row indexes
+  // it for fast memory-search.
+  let vaultRel: string | null = null;
+  try {
+    const root = db.$raw
+      .query("SELECT value FROM settings WHERE key = 'obsidian_vault_path'")
+      .get() as { value: string } | undefined;
+    if (root) {
+      const { vaultWriteNote } = await import("../vault/tools.js");
+      const safeTitle = (input.title ?? `note-${Date.now()}`)
+        .replace(/[^\p{L}\p{N}_ -]/gu, "-")
+        .trim()
+        .slice(0, 80);
+      const rel = `passio/${safeTitle || "untitled"}.md`;
+      const fm: Record<string, unknown> = { created: new Date().toISOString() };
+      if (input.tags) fm.tags = input.tags.split(",").map((t) => t.trim()).filter(Boolean);
+      const res = await vaultWriteNote(db, {
+        path: rel,
+        body: input.body,
+        frontmatter: fm,
+      });
+      vaultRel = res.path;
+    }
+  } catch {
+    /* vault-write is best-effort — never fail note_save because of it */
+  }
+
   const [row] = await db
     .insert(notes)
     .values({
       title: input.title ?? null,
       body: input.body,
       tags: input.tags ?? null,
+      vaultPath: vaultRel,
     })
     .returning({ id: notes.id });
   if (!row) throw new Error("insert returned no row");
   await indexNoteEmbedding(db, row.id, `${input.title ?? ""}\n${input.body}`);
-  return { id: row.id };
+  return vaultRel ? { id: row.id, vaultPath: vaultRel } : { id: row.id };
 }
 
 export async function noteSearch(

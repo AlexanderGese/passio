@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#2a1a40"/>
+      <stop offset="100%" stop-color="#120E1A"/>
+    </radialGradient>
+    <linearGradient id="vine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a4f48a"/>
+      <stop offset="100%" stop-color="#2d7a3b"/>
+    </linearGradient>
+    <radialGradient id="fruit" cx="35%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#f1a0d6"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#3a0f6e"/>
+    </radialGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bg)"/>
+  <!-- Curling vine -->
+  <path d="M 256 60 C 180 120, 340 180, 220 260 C 120 320, 340 360, 256 440" stroke="url(#vine)" stroke-width="16" fill="none" stroke-linecap="round"/>
+  <!-- Tendrils -->
+  <path d="M 300 120 q 15 -10 25 10 q 8 20 -15 15" stroke="#6fd26b" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 170 230 q -15 -10 -25 10 q -8 20 15 15" stroke="#6fd26b" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 330 360 q 15 -8 18 12 q 2 18 -18 10" stroke="#6fd26b" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Leaves along vine -->
+  <g fill="url(#vine)">
+    <path d="M 230 110 q 20 -40 55 -40 q -5 40 -55 40 Z"/>
+    <path d="M 300 200 q -25 -35 -55 -25 q 20 35 55 25 Z"/>
+    <path d="M 210 300 q 20 35 55 25 q -25 -35 -55 -25 Z"/>
+    <path d="M 310 380 q -20 -35 -55 -25 q 25 35 55 25 Z"/>
+  </g>
+  <!-- Fruits on vine -->
+  <circle cx="255" cy="85" r="28" fill="url(#fruit)"/>
+  <circle cx="300" cy="340" r="36" fill="url(#fruit)"/>
+  <!-- Mini highlights -->
+  <circle cx="247" cy="78" r="7" fill="rgba(255,255,255,0.45)"/>
+  <circle cx="290" cy="330" r="9" fill="rgba(255,255,255,0.35)"/>
+</svg>

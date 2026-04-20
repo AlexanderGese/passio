@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "weather-haiku",
+  "version": "0.1.0",
+  "description": "Generate a 5-7-5 haiku about today's weather each morning.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "compose"
+    ],
+    "scheduler": [
+      {
+        "id": "am",
+        "every_seconds": 3600
+      }
+    ]
+  }
+}

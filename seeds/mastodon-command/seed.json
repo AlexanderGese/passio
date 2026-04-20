@@ -1,0 +1,26 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "mastodon-command",
+  "version": "0.1.0",
+  "description": "Mastodon remote — toot, boost, favourite, follow, search, timelines. Works with any instance. $19.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-mastodon-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["*"], "secrets": ["token"] },
+  "contributes": {
+    "tools": ["toot","reply","boost","unboost","favourite","unfavourite","follow","unfollow","timeline","mentions","search","delete","me","autopilot_tick","autopilot_enable","autopilot_dry_run"],
+    "tabs": [{ "id": "mastodon-command-panel", "title": "Mastodon", "icon": "🐘", "panel": "./panel.js" }],
+    "scheduler": [{ "id": "autopilot", "every_seconds": 3600 }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "instance", "label": "Instance host", "type": "string", "default": "mastodon.social" },
+      { "id": "token", "label": "Access token", "type": "secret" },
+      { "id": "autopilot_enabled", "type": "boolean", "label": "Autopilot", "default": false },
+      { "id": "autopilot_dry_run", "type": "boolean", "label": "Dry-run", "default": true },
+      { "id": "autopilot_topics", "type": "string", "label": "Topics (comma)" },
+      { "id": "autopilot_max_per_day", "type": "number", "label": "Max per day", "default": 3 }
+    ]
+  }
+}

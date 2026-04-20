@@ -1,0 +1,42 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "github-trending",
+  "version": "0.1.0",
+  "description": "Trending repos today, filtered by a language list.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "github-trending-api.de.a9sapp.eu",
+      "api.gitterapp.com"
+    ]
+  },
+  "contributes": {
+    "tabs": [
+      {
+        "id": "github-trending-panel",
+        "title": "Trending",
+        "icon": "⭐",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 3600
+      }
+    ],
+    "tools": [
+      "fetch"
+    ],
+    "settings": [
+      {
+        "id": "langs",
+        "label": "Languages (comma)",
+        "type": "string",
+        "default": "typescript,rust"
+      }
+    ]
+  }
+}

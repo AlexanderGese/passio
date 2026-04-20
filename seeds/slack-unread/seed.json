@@ -1,0 +1,44 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "slack-unread",
+  "version": "0.1.0",
+  "description": "Unread count per channel. Configure a user OAuth token (xoxp-…).",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "slack.com"
+    ],
+    "secrets": [
+      "token"
+    ]
+  },
+  "contributes": {
+    "tabs": [
+      {
+        "id": "slack-unread-panel",
+        "title": "Slack",
+        "icon": "💬",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 300
+      }
+    ],
+    "tools": [
+      "check"
+    ],
+    "settings": [
+      {
+        "id": "token",
+        "label": "Slack user token (xoxp-…)",
+        "type": "secret",
+        "description": "Paste your token. Passio never sends it anywhere but the declared host."
+      }
+    ]
+  }
+}

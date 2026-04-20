@@ -69,6 +69,7 @@ export const conversations = sqliteTable("conversations", {
   startedAt: text("started_at").notNull().default(now),
   endedAt: text("ended_at"),
   mode: text("mode"), // text|voice|proactive
+  goalId: integer("goal_id"), // W22: optional per-goal scoped chat
 });
 
 export const messages = sqliteTable("messages", {

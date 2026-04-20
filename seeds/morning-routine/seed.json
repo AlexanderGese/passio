@@ -1,0 +1,23 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "morning-routine",
+  "version": "0.1.0",
+  "description": "Step-by-step guided morning routine: water → stretch → intent → inbox triage.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tabs": [
+      {
+        "id": "morning-routine-panel",
+        "title": "AM",
+        "icon": "☀",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "start"
+    ]
+  }
+}

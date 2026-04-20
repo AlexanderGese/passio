@@ -1,0 +1,19 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "wiki-grab",
+  "version": "0.1.0",
+  "description": "URL → distilled note. Paste a URL, get a readable summary saved to vault.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "*"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "grab"
+    ]
+  }
+}

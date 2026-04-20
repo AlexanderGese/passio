@@ -1,0 +1,15 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "on-this-day",
+  "version": "0.1.0",
+  "description": "Surfaces your vault notes from N years ago today.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "today"
+    ]
+  }
+}

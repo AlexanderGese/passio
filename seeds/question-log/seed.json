@@ -1,0 +1,16 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "question-log",
+  "version": "0.1.0",
+  "description": "Daily capture of open questions — surfaces in the morning brief.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "add",
+      "today"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "lobsters-pulse",
+  "version": "0.1.0",
+  "description": "Lobsters front page, top 5, refreshed every 15 min.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "lobste.rs"
+    ]
+  },
+  "contributes": {
+    "tabs": [
+      {
+        "id": "lobsters-pulse-panel",
+        "title": "Lobsters",
+        "icon": "🦞",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 900
+      }
+    ],
+    "tools": [
+      "top"
+    ]
+  }
+}

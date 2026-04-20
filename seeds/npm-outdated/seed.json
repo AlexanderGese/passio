@@ -1,0 +1,25 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "npm-outdated",
+  "version": "0.1.0",
+  "description": "Runs `npm outdated` in a path and shows direct deps needing upgrade.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "trusted": true
+  },
+  "contributes": {
+    "tools": [
+      "scan"
+    ],
+    "settings": [
+      {
+        "id": "path",
+        "label": "Project path",
+        "type": "string",
+        "default": "."
+      }
+    ]
+  }
+}

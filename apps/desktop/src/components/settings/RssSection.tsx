@@ -33,14 +33,14 @@ export function RssSection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="RSS / Atom feeds (one URL per row)">
+    <div className="space-y-2 text-[14px]">
+      <Section label="RSS / Atom feeds" hint="News + blog feeds Passio pulls during the morning briefing. One URL per row.">
         <div className="flex gap-1">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="https://example.com/feed.xml"
-            className="no-drag flex-1 rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag flex-1 rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
           <button
             type="button"
@@ -51,7 +51,7 @@ export function RssSection() {
             add
           </button>
         </div>
-        {err && <p className="mt-2 text-[11px] text-red-300">{err}</p>}
+        {err && <p className="mt-2 text-[14px] text-red-300">{err}</p>}
         <div className="mt-2">
           <ChipList items={feeds} onRemove={remove} />
         </div>

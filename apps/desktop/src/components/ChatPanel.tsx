@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { chat, onChatChunk, voiceApi } from "../ipc";
+import { autoLoopApi, chat, onChatChunk, voiceApi } from "../ipc";
 import { playWithLipsync } from "../avatar/lipsync";
 import { usePassioStore } from "../store";
 
 /**
- * The expanded chat panel. Click-to-send text chat against the sidecar
- * agent. v1 uses non-streaming `generateText`; streaming UI lands with
- * week 6 (voice) when the protocol grows stream chunks end-to-end.
+ * Main chat panel. Text + voice input, streaming replies, voice-in →
+ * voice-out loop with lipsync. W21 redesign: 15 px body, crisp chat
+ * bubbles with shadow, visible action buttons.
  */
 export function ChatPanel() {
   const {
@@ -15,6 +15,8 @@ export function ChatPanel() {
     isThinking,
     streamingText,
     conversationId,
+    activeGoalId,
+    activeGoalTitle,
     appendMessage,
     setIsThinking,
     appendStream,
@@ -28,6 +30,7 @@ export function ChatPanel() {
   const [draft, setDraft] = useState("");
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [autoMode, setAutoMode] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -35,6 +38,18 @@ export function ChatPanel() {
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      if (typeof text === "string" && text.trim()) {
+        setDraft((d) => (d ? `${d}\n\n${text}` : text));
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("passio-chat-prefill", handler);
+    return () => window.removeEventListener("passio-chat-prefill", handler);
   }, []);
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
@@ -55,11 +70,34 @@ export function ChatPanel() {
     if (!prompt || isThinking) return;
     setDraft("");
     appendMessage({ role: "user", content: prompt, ts: Date.now() });
+
+    if (autoMode) {
+      // Kick off an autonomous loop instead of a single chat turn.
+      try {
+        const r = await autoLoopApi.start({
+          task: prompt,
+          ...(activeGoalId !== null ? { goalId: activeGoalId } : {}),
+        });
+        appendMessage({
+          role: "system",
+          content: `∞ Auto-loop #${r.id} started. Watch progress in the Auto tab; I'll re-plan after each step until the task is done.`,
+          ts: Date.now(),
+        });
+      } catch (err) {
+        appendMessage({
+          role: "system",
+          content: `⚠ auto-loop failed: ${err instanceof Error ? err.message : String(err)}`,
+          ts: Date.now(),
+        });
+      }
+      return;
+    }
+
     setIsThinking(true);
     resetStream();
     setBubble("thinking");
     try {
-      const res = await chat(prompt, conversationId ?? undefined);
+      const res = await chat(prompt, conversationId ?? undefined, activeGoalId ?? undefined);
       setConversationId(res.conversationId);
       appendMessage({ role: "assistant", content: res.text, ts: Date.now() });
       resetStream();
@@ -67,11 +105,7 @@ export function ChatPanel() {
       setTimeout(() => setBubble("idle"), 1200);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      appendMessage({
-        role: "system",
-        content: `⚠ ${message}`,
-        ts: Date.now(),
-      });
+      appendMessage({ role: "system", content: `⚠ ${message}`, ts: Date.now() });
       resetStream();
       setBubble("alert");
       setTimeout(() => setBubble("idle"), 1800);
@@ -103,13 +137,9 @@ export function ChatPanel() {
         setTranscribing(true);
         try {
           const base64 = await blobToBase64(blob);
-          const { text } = await voiceApi.transcribe({
-            audio_base64: base64,
-            mime_type: mime,
-          });
+          const { text } = await voiceApi.transcribe({ audio_base64: base64, mime_type: mime });
           if (text) {
             setDraft(text);
-            // Auto-send so the voice → chat loop is a single action.
             setTimeout(() => void sendWith(text), 0);
           }
         } catch (e) {
@@ -147,13 +177,11 @@ export function ChatPanel() {
     resetStream();
     setBubble("thinking");
     try {
-      const res = await chat(prompt, conversationId ?? undefined);
+      const res = await chat(prompt, conversationId ?? undefined, activeGoalId ?? undefined);
       setConversationId(res.conversationId);
       appendMessage({ role: "assistant", content: res.text, ts: Date.now() });
       resetStream();
       setBubble("talking");
-      // Voice-in → voice-out: synth TTS and lipsync. If no API key or
-      // network fails, bail silently so text still shows.
       try {
         const tts = await voiceApi.synthesize({ text: res.text.slice(0, 2000) });
         await playWithLipsync({
@@ -163,7 +191,7 @@ export function ChatPanel() {
           onDone: () => setMouthLevel(0),
         });
       } catch {
-        /* fine — text path still works */
+        /* text still shows */
       }
       setTimeout(() => setBubble("idle"), 500);
     } catch (err) {
@@ -188,47 +216,51 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col text-sm">
-      <header className="mb-2 flex items-center justify-between">
-        <span className="font-medium text-passio-pulp">{usePassioStore.getState().assistantName}</span>
-        <div className="flex items-center gap-2 text-xs text-neutral-500">
-          {messages.length > 0 && (
-            <button
-              type="button"
-              onClick={resetConversation}
-              className="rounded px-1 hover:text-neutral-200"
-            >
-              new
-            </button>
-          )}
-          <StatusDot />
+    <div className="flex h-full flex-col gap-3">
+      {activeGoalId !== null && (
+        <div className="flex items-center justify-between rounded-xl border border-passio-pulp/40 bg-[#241B30] px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-passio-pulpBright">
+              Focused on goal
+            </p>
+            <p className="truncate text-[14px] text-passio-cream">{activeGoalTitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={resetConversation}
+            className="ml-2 shrink-0 rounded-md bg-[#2E2340] px-2 py-1 text-[12px] text-neutral-200 hover:text-passio-pulp"
+          >
+            Unscope
+          </button>
         </div>
-      </header>
+      )}
 
       <div
         ref={listRef}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-lg bg-black/20 p-2 scrollbar-none"
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-xl border border-passio-border bg-[#120E1A] p-3"
       >
         {messages.length === 0 ? (
           <EmptyState />
         ) : (
-          messages.map((m, i) => <Bubble key={`${m.ts}-${i}`} role={m.role} text={m.content} />)
+          messages.map((m, i) => <Msg key={`${m.ts}-${i}`} role={m.role} text={m.content} />)
         )}
         {isThinking && streamingText.length > 0 && (
-          <Bubble role="assistant" text={streamingText} />
+          <Msg role="assistant" text={streamingText} />
         )}
-        {isThinking && streamingText.length === 0 && <Bubble role="assistant" text="…" dim />}
+        {isThinking && streamingText.length === 0 && <Msg role="assistant" text="…" dim />}
       </div>
 
-      <div className="mt-2 flex items-end gap-2">
+      <div className="flex items-end gap-2">
         <textarea
           ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={recording ? "listening…" : transcribing ? "transcribing…" : "ask passio — enter to send"}
+          placeholder={
+            recording ? "Listening…" : transcribing ? "Transcribing…" : "Ask Passio — Enter to send, Shift+Enter for newline"
+          }
           rows={2}
-          className="no-drag flex-1 resize-none rounded-lg border border-white/10 bg-black/40 p-2 text-neutral-100 placeholder-neutral-500 focus:border-passio-pulp focus:outline-none"
+          className="no-drag flex-1 resize-none rounded-xl border border-passio-border bg-[#241B30] px-3 py-2.5 text-[15px] leading-snug text-passio-cream placeholder-neutral-500 focus:border-passio-pulp focus:outline-none"
           disabled={isThinking || recording || transcribing}
         />
         <button
@@ -236,15 +268,61 @@ export function ChatPanel() {
           onClick={recording ? stopRecording : startRecording}
           disabled={isThinking || transcribing}
           className={clsx(
-            "no-drag h-9 w-9 shrink-0 rounded-full text-[15px]",
-            recording ? "bg-red-500 text-white animate-pulse" : "bg-passio-skinLight/40 hover:bg-passio-skinLight/60",
+            "no-drag flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[18px] transition-colors",
+            recording
+              ? "bg-red-500 text-white animate-pulse"
+              : "bg-passio-skin text-passio-cream hover:bg-passio-skinLight",
           )}
-          aria-label={recording ? "stop recording" : "start voice input"}
-          title={recording ? "Stop" : "Voice input"}
+          aria-label={recording ? "Stop recording" : "Start voice input"}
+          title={recording ? "Stop" : "Voice"}
         >
           {recording ? "■" : "🎙"}
         </button>
+        <button
+          type="button"
+          onClick={() => setAutoMode(!autoMode)}
+          className={clsx(
+            "no-drag flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[16px] transition-colors",
+            autoMode
+              ? "bg-passio-pulpBright text-passio-seed animate-pulse-soft"
+              : "bg-[#2E2340] text-neutral-300 hover:text-passio-pulpBright",
+          )}
+          aria-label={autoMode ? "Auto mode on" : "Auto mode off"}
+          title={
+            autoMode
+              ? "Auto mode ON — next send starts a loop that keeps going until the task is done"
+              : "Auto mode OFF — tap to enable run-until-done"
+          }
+        >
+          ∞
+        </button>
+        <button
+          type="button"
+          onClick={send}
+          disabled={isThinking || !draft.trim()}
+          className={clsx(
+            "no-drag h-11 shrink-0 rounded-full px-4 text-[14px] font-semibold transition-colors disabled:opacity-40",
+            autoMode
+              ? "bg-passio-pulpBright text-passio-seed hover:bg-passio-pulp"
+              : "bg-passio-pulp text-passio-seed hover:bg-passio-pulpBright",
+          )}
+          aria-label={autoMode ? "Run until done" : "Send"}
+        >
+          {autoMode ? "Run loop" : "Send"}
+        </button>
       </div>
+
+      {messages.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={resetConversation}
+            className="text-[12px] text-neutral-400 hover:text-passio-pulp"
+          >
+            New conversation →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -261,36 +339,37 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-function StatusDot() {
-  const { sidecarReady, lastPing } = usePassioStore();
-  return (
-    <span className="flex items-center gap-1">
-      <span
-        className={clsx(
-          "inline-block h-2 w-2 rounded-full",
-          sidecarReady ? "bg-emerald-400" : "bg-neutral-600",
-        )}
-        aria-hidden
-      />
-      {lastPing !== null && <span>{lastPing}ms</span>}
-    </span>
-  );
-}
-
 function EmptyState() {
+  const examples = [
+    "remember I'm learning Japanese to N2",
+    "what should I do this afternoon?",
+    "add 'read ch.4 of the textbook' to my list",
+    "what am I avoiding right now?",
+  ];
   return (
-    <div className="py-6 text-center text-xs text-neutral-500">
-      <p>hey 👋 try one of:</p>
-      <ul className="mt-2 space-y-1 text-neutral-400">
-        <li>“remember I'm learning Japanese”</li>
-        <li>“add ship week 2 to my todo list”</li>
-        <li>“what do you know about me?”</li>
+    <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center animate-fade-in">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-passio-pulp to-passio-skin shadow-[0_10px_28px_-8px_rgba(168,85,247,0.6)]">
+        <span className="text-2xl">🍇</span>
+      </div>
+      <p className="voice text-[22px] font-medium text-passio-cream">What's on your mind?</p>
+      <p className="text-[13px] text-neutral-300">
+        Thick skin, bright inside. Ask anything.
+      </p>
+      <ul className="mt-2 w-full max-w-[320px] space-y-1.5">
+        {examples.map((ex) => (
+          <li
+            key={ex}
+            className="rounded-xl border border-passio-border/60 bg-passio-panelAlt/60 px-3 py-2 text-left text-[13px] text-neutral-200"
+          >
+            "{ex}"
+          </li>
+        ))}
       </ul>
     </div>
   );
 }
 
-function Bubble({
+function Msg({
   role,
   text,
   dim = false,
@@ -299,20 +378,18 @@ function Bubble({
   text: string;
   dim?: boolean;
 }) {
-  const align = role === "user" ? "ml-auto" : "";
-  const bg =
-    role === "user"
-      ? "bg-passio-skinLight/25 text-neutral-100"
-      : role === "system"
-        ? "bg-amber-900/40 text-amber-200"
-        : "bg-neutral-800/80 text-neutral-100";
+  const isUser = role === "user";
+  const isSystem = role === "system";
   return (
     <div
       className={clsx(
-        "max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-1.5 text-[13px] leading-snug shadow-sm",
-        align,
-        bg,
-        dim && "opacity-60",
+        "max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[15px] leading-[1.55] shadow-sm allow-select animate-fade-in-up",
+        isUser
+          ? "ml-auto bg-gradient-to-br from-[#7D3AB8] to-[#5B2A86] text-passio-cream shadow-[0_6px_18px_-8px_rgba(125,58,184,0.55)]"
+          : isSystem
+            ? "bg-amber-950/70 text-amber-100 border border-amber-500/35"
+            : "voice bg-gradient-to-b from-[#241B30] to-[#1E1629] text-passio-cream border border-passio-border/80",
+        dim && "opacity-60 italic",
       )}
     >
       {text}

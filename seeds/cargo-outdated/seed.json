@@ -1,0 +1,25 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "cargo-outdated",
+  "version": "0.1.0",
+  "description": "Runs `cargo outdated` — Rust equivalent.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "trusted": true
+  },
+  "contributes": {
+    "tools": [
+      "scan"
+    ],
+    "settings": [
+      {
+        "id": "path",
+        "label": "Cargo workspace",
+        "type": "string",
+        "default": "."
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "commute-chip",
+  "version": "0.1.0",
+  "description": "Home → work ETA chip via OpenStreetMap Routing Machine (OSRM). Free, no key.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "router.project-osrm.org"
+    ]
+  },
+  "contributes": {
+    "widgets": [
+      {
+        "id": "commute-chip-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 900
+      }
+    ],
+    "tools": [
+      "eta"
+    ],
+    "settings": [
+      {
+        "id": "from",
+        "label": "From (lat,lon)",
+        "type": "string",
+        "default": "52.5200,13.4050"
+      },
+      {
+        "id": "to",
+        "label": "To (lat,lon)",
+        "type": "string",
+        "default": "52.4862,13.4266"
+      }
+    ]
+  }
+}

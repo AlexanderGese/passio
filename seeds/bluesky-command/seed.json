@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "bluesky-command",
+  "version": "0.1.0",
+  "description": "Bluesky (AT protocol) remote — post, like, repost, reply, feeds, search, follow. $19.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-bluesky-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["bsky.social"], "secrets": ["identifier","app_password"] },
+  "contributes": {
+    "tools": ["post","reply","like","unlike","repost","feed","search","follow","me"],
+    "tabs": [{ "id": "bluesky-command-panel", "title": "Bluesky", "icon": "🌤", "panel": "./panel.js" }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "identifier", "label": "handle.bsky.social", "type": "string" },
+      { "id": "app_password", "label": "App password", "type": "secret" }
+    ]
+  }
+}

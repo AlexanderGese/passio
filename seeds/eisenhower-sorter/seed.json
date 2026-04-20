@@ -1,0 +1,15 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "eisenhower-sorter",
+  "version": "0.1.0",
+  "description": "Prompt-driven todo → quadrant classifier (urgent×important).",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "sort"
+    ]
+  }
+}

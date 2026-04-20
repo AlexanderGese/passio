@@ -1,0 +1,30 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "trello-board",
+  "version": "0.1.0",
+  "description": "View one Trello board's columns. Needs an API key + token.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "api.trello.com"
+    ],
+    "secrets": [
+      "trello_key",
+      "trello_token"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "load"
+    ],
+    "settings": [
+      {
+        "id": "board_id",
+        "label": "Board id",
+        "type": "string"
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "fake-coworker",
+  "version": "0.1.0",
+  "description": "Toggle \"pretend available\" — forwards a custom Slack status for 30 min.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "slack.com"
+    ],
+    "secrets": [
+      "token"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "toggle"
+    ],
+    "settings": [
+      {
+        "id": "status",
+        "label": "Status text",
+        "type": "string",
+        "default": "Heads down"
+      }
+    ]
+  }
+}

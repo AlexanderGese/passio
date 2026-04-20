@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "mail-digest",
+  "version": "0.1.0",
+  "description": "8 am summary: yesterday's mail volume, top senders, top subjects. Written to a vault note.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "scheduler": [
+      {
+        "id": "daily",
+        "every_seconds": 86400
+      }
+    ],
+    "tools": [
+      "run"
+    ]
+  }
+}

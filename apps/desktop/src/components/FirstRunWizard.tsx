@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { goalCreate, keychainApi, packApi } from "../ipc";
+import { firstRunApi, goalCreate, keychainApi, packApi, personaTreeApi, vaultApi, type PersonaNode } from "../ipc";
 import { invoke } from "@tauri-apps/api/core";
 
 /**
@@ -9,7 +9,7 @@ import { invoke } from "@tauri-apps/api/core";
  *
  * Steps: welcome → key → vault → first goal → pack.
  */
-type Step = 0 | 1 | 2 | 3 | 4;
+type Step = 0 | 1 | 2 | 3 | 4 | 5;
 
 export function FirstRunWizard({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState<Step>(0);
@@ -20,8 +20,17 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
   const [pack, setPack] = useState<"work" | "study" | "chill">("work");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [personaTree, setPersonaTree] = useState<PersonaNode[]>([]);
+  const [personaPath, setPersonaPath] = useState<string[]>([]);
 
-  const advance = () => setStep((s) => Math.min(4, s + 1) as Step);
+  useEffect(() => {
+    personaTreeApi
+      .get()
+      .then((r) => setPersonaTree(r.tree))
+      .catch(() => undefined);
+  }, []);
+
+  const advance = () => setStep((s) => Math.min(5, s + 1) as Step);
   const back = () => setStep((s) => Math.max(0, s - 1) as Step);
 
   async function finish() {
@@ -30,7 +39,12 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
     try {
       if (key.trim()) await keychainApi.set("openai", key.trim());
       if (vault.trim()) {
+        await vaultApi.setRoot(vault.trim()).catch(() => {});
+        await vaultApi.index().catch(() => {});
         await invoke("request_scan", { reason: "manual" }).catch(() => {});
+      }
+      if (personaPath.length === 3) {
+        await personaTreeApi.applyPath(personaPath).catch(() => {});
       }
       if (goalTitle.trim()) {
         await goalCreate({
@@ -40,6 +54,7 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
         });
       }
       await packApi.set(pack);
+      await firstRunApi.mark().catch(() => {});
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -48,8 +63,15 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
     }
   }
 
+  async function skip() {
+    // Mark done even on skip so we don't harass the user every boot.
+    // They can re-run the wizard from Settings → Re-run wizard.
+    await firstRunApi.mark().catch(() => {});
+    onDone();
+  }
+
   return (
-    <div className="no-drag pointer-events-auto flex h-[480px] w-[340px] flex-col rounded-2xl border border-passio-skinLight/40 bg-neutral-950/98 p-4 text-[13px] text-neutral-100 shadow-2xl backdrop-blur">
+    <div className="no-drag pointer-events-auto flex h-[480px] w-[340px] flex-col rounded-2xl border border-passio-skinLight/40 bg-[#120E1A] p-4 text-[14px] text-neutral-100 shadow-2xl ">
       <header className="mb-2 flex items-center justify-between">
         <span className="text-passio-pulp font-medium">🍇 Welcome to Passio</span>
         <Dots step={step} />
@@ -67,7 +89,7 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="sk-proj-…"
-              className="no-drag w-full rounded-md border border-white/10 bg-black/40 p-2 focus:border-passio-pulp focus:outline-none"
+              className="no-drag w-full rounded-md border border-passio-border bg-[#241B30] p-2 focus:border-passio-pulp focus:outline-none"
               autoFocus
             />
           </Field>
@@ -82,7 +104,7 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
               value={vault}
               onChange={(e) => setVault(e.target.value)}
               placeholder="/home/you/Documents/ObsidianVault"
-              className="no-drag w-full rounded-md border border-white/10 bg-black/40 p-2 focus:border-passio-pulp focus:outline-none"
+              className="no-drag w-full rounded-md border border-passio-border bg-[#241B30] p-2 focus:border-passio-pulp focus:outline-none"
             />
           </Field>
         )}
@@ -97,7 +119,7 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
                 value={goalTitle}
                 onChange={(e) => setGoalTitle(e.target.value)}
                 placeholder="e.g. Launch a SaaS in 12 months"
-                className="no-drag w-full rounded-md border border-white/10 bg-black/40 p-2 focus:border-passio-pulp focus:outline-none"
+                className="no-drag w-full rounded-md border border-passio-border bg-[#241B30] p-2 focus:border-passio-pulp focus:outline-none"
               />
             </Field>
             <Field label="Target date">
@@ -105,7 +127,7 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
                 type="date"
                 value={goalTarget}
                 onChange={(e) => setGoalTarget(e.target.value)}
-                className="no-drag w-full rounded-md border border-white/10 bg-black/40 p-2 focus:border-passio-pulp focus:outline-none"
+                className="no-drag w-full rounded-md border border-passio-border bg-[#241B30] p-2 focus:border-passio-pulp focus:outline-none"
               />
             </Field>
           </div>
@@ -122,7 +144,7 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
                     "rounded-md p-2 text-center",
                     pack === p
                       ? "bg-passio-pulp/80 text-black"
-                      : "bg-black/30 hover:bg-passio-skinLight/30",
+                      : "bg-[#1A1422] hover:bg-passio-skinLight/30",
                   )}
                 >
                   {p}
@@ -130,6 +152,13 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
               ))}
             </div>
           </Field>
+        )}
+        {step === 5 && (
+          <PersonaStep
+            tree={personaTree}
+            path={personaPath}
+            onPick={(newPath) => setPersonaPath(newPath)}
+          />
         )}
         {err && <p className="mt-2 text-red-400">{err}</p>}
       </div>
@@ -139,14 +168,14 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
           type="button"
           onClick={back}
           disabled={step === 0}
-          className="rounded-md px-3 py-1.5 text-neutral-400 hover:text-neutral-100 disabled:opacity-30"
+          className="rounded-md px-3 py-1.5 text-neutral-200 hover:text-neutral-100 disabled:opacity-30"
         >
           back
         </button>
-        <button type="button" onClick={onDone} className="text-[11px] text-neutral-500 hover:text-neutral-300">
+        <button type="button" onClick={skip} className="text-[14px] text-neutral-300 hover:text-neutral-200">
           skip
         </button>
-        {step < 4 ? (
+        {step < 5 ? (
           <button
             type="button"
             onClick={advance}
@@ -171,18 +200,18 @@ export function FirstRunWizard({ onDone }: { onDone: () => void }) {
 
 function Welcome() {
   return (
-    <div className="space-y-2 text-[12px] text-neutral-200">
+    <div className="space-y-2 text-[14px] text-neutral-200">
       <p>
         Passio is a <span className="text-passio-pulp">local-first</span> desktop AI
         assistant — a passionfruit that lives in your corner, remembers what matters,
         chases big goals, and acts in your browser with your permission.
       </p>
-      <p className="text-neutral-400">
+      <p className="text-neutral-200">
         In the next steps we'll set up your API key, optional Obsidian vault,
         first goal, and default context pack. You can skip any of these and
         change them later.
       </p>
-      <p className="text-[11px] text-emerald-300">
+      <p className="text-[14px] text-emerald-300">
         ✓ Zero telemetry. Everything stays on this machine unless you explicitly
         call an API.
       </p>
@@ -201,9 +230,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-neutral-400">{label}</span>
+      <span className="mb-1 block text-neutral-200">{label}</span>
       {children}
-      {hint && <p className="mt-1 text-[10px] text-neutral-500">{hint}</p>}
+      {hint && <p className="mt-1 text-[14px] text-neutral-300">{hint}</p>}
     </label>
   );
 }
@@ -211,7 +240,7 @@ function Field({
 function Dots({ step }: { step: number }) {
   return (
     <div className="flex gap-1">
-      {[0, 1, 2, 3, 4].map((i) => (
+      {[0, 1, 2, 3, 4, 5].map((i) => (
         <span
           key={i}
           className={clsx(
@@ -222,6 +251,78 @@ function Dots({ step }: { step: number }) {
       ))}
     </div>
   );
+}
+
+function PersonaStep({
+  tree,
+  path,
+  onPick,
+}: {
+  tree: PersonaNode[];
+  path: string[];
+  onPick: (p: string[]) => void;
+}) {
+  const options = resolveLevel(tree, path);
+  const levelLabel = path.length === 0 ? "What kind of companion?" : path.length === 1 ? "Sharpen the tone" : "Pick a flavor";
+  const hint =
+    path.length === 0
+      ? "Five archetypes. Each gets more specific in the next two steps."
+      : path.length === 1
+        ? "Now the tone of voice."
+        : "Last pick — a specific flavor.";
+  return (
+    <div className="space-y-2">
+      <div>
+        <p className="text-[14px] text-passio-cream">{levelLabel}</p>
+        <p className="text-[12px] text-neutral-400">{hint} · step {path.length + 1} of 3</p>
+      </div>
+      <div className="grid grid-cols-1 gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => onPick([...path, o.id])}
+            className={clsx(
+              "flex items-start gap-2 rounded-lg border px-2.5 py-2 text-left text-[13px] transition-colors",
+              path[path.length - 1] === o.id
+                ? "border-passio-pulp bg-passio-pulp/15"
+                : "border-passio-border bg-[#1A1422] hover:border-passio-pulp/50",
+            )}
+          >
+            <span className="text-[18px] leading-none">{o.emoji}</span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-passio-cream">{o.title}</span>
+              <span className="block truncate text-[12px] text-neutral-400">{o.tagline}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {path.length > 0 && (
+        <button
+          type="button"
+          onClick={() => onPick(path.slice(0, -1))}
+          className="text-[12px] text-neutral-400 hover:text-passio-pulp"
+        >
+          ← back to previous pick
+        </button>
+      )}
+      {path.length === 3 && (
+        <p className="mt-1 text-[12px] text-emerald-300">
+          ✓ Persona set. Click finish to save.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function resolveLevel(tree: PersonaNode[], path: string[]): PersonaNode[] {
+  let level = tree;
+  for (const id of path) {
+    const match = level.find((n) => n.id === id);
+    if (!match) return [];
+    level = match.children ?? [];
+  }
+  return level;
 }
 
 function plusMonths(n: number): string {

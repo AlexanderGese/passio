@@ -1,0 +1,24 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "email-undo-send",
+  "version": "0.1.0",
+  "description": "30-second hold before SMTP actually dispatches. Cancel in the panel to retract.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tabs": [
+      {
+        "id": "email-undo-panel",
+        "title": "Undo send",
+        "icon": "↩",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "hold",
+      "cancel"
+    ]
+  }
+}

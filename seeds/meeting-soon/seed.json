@@ -1,0 +1,25 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "meeting-soon",
+  "version": "0.1.0",
+  "description": "Red chip when your next calendar event starts in ≤5 min. Uses Passio's calendar.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "widgets": [
+      {
+        "id": "meeting-soon-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 60
+      }
+    ]
+  }
+}

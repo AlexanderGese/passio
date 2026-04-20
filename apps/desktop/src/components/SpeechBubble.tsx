@@ -43,12 +43,12 @@ export function SpeechBubble({ message, ttlMs, name, onDone }: Props) {
       role="button"
       tabIndex={0}
     >
-      <div className="relative rounded-2xl border border-passio-skinLight/40 bg-neutral-950/95 px-3 py-2 shadow-2xl backdrop-blur">
-        <span className="text-[10px] uppercase tracking-wide text-passio-pulp">{name}</span>
-        <p className="mt-0.5 text-[12px] leading-snug text-neutral-100">{message}</p>
+      <div className="relative rounded-2xl border border-passio-skinLight/40 bg-[#120E1A] px-3 py-2 shadow-2xl ">
+        <span className="text-[14px] uppercase tracking-wide text-passio-pulp">{name}</span>
+        <p className="mt-0.5 text-[14px] leading-snug text-neutral-100">{message}</p>
         {/* Tail */}
         <span
-          className="absolute -bottom-[7px] right-5 h-3 w-3 rotate-45 border-b border-r border-passio-skinLight/40 bg-neutral-950/95"
+          className="absolute -bottom-[7px] right-5 h-3 w-3 rotate-45 border-b border-r border-passio-skinLight/40 bg-[#120E1A]"
           aria-hidden
         />
       </div>

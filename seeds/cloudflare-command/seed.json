@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "cloudflare-command",
+  "version": "0.1.0",
+  "description": "Cloudflare remote — DNS records, Worker deploy, KV ops, zone rules, purge cache. $49.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-cloudflare-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["api.cloudflare.com"], "secrets": ["api_token"] },
+  "contributes": {
+    "tools": ["zones","dns_list","dns_add","dns_update","dns_delete","purge","workers_list","worker_deploy","kv_namespaces","kv_put","kv_get","kv_delete","kv_list"],
+    "tabs": [{ "id": "cloudflare-command-panel", "title": "CF", "icon": "🟧", "panel": "./panel.js" }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "api_token", "label": "API token", "type": "secret" },
+      { "id": "account_id", "label": "Account id", "type": "string" }
+    ]
+  }
+}

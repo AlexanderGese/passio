@@ -1,0 +1,40 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "ping-chip",
+  "version": "0.1.0",
+  "description": "Round-trip to a host, colored by latency band. Default google.com.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "*"
+    ]
+  },
+  "contributes": {
+    "widgets": [
+      {
+        "id": "ping-chip-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 60
+      }
+    ],
+    "tools": [
+      "ping"
+    ],
+    "settings": [
+      {
+        "id": "host",
+        "label": "Host URL",
+        "type": "string",
+        "default": "https://google.com"
+      }
+    ]
+  }
+}

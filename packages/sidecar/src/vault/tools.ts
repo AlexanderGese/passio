@@ -19,6 +19,34 @@ import { indexFile } from "./indexer.js";
 const PASSIO_SUBDIR = "passio";
 const DAILY_DIR = "daily";
 
+/**
+ * Resolves the daily-note path for a given date. Honours the user-configured
+ * `vault_daily_note_template` (set via Settings → Vault) so people who use
+ * Obsidian with different daily-note conventions (e.g. `Journal/YYYY/MM/DD.md`,
+ * `Daily/YYYY-MM-DD.md`, etc.) get their own layout respected.
+ *
+ * Supported template tokens: `YYYY`, `MM`, `DD`, `YYYY-MM-DD`.
+ */
+export function resolveDailyNotePath(db: Db, date: string): string {
+  const row = db.$raw
+    .query("SELECT value FROM settings WHERE key = 'vault_daily_note_template'")
+    .get() as { value: string } | undefined;
+  let template = `${DAILY_DIR}/YYYY-MM-DD.md`;
+  if (row) {
+    try {
+      template = JSON.parse(row.value) as string;
+    } catch {
+      /* fall back to default */
+    }
+  }
+  const [y, m, d] = date.split("-");
+  return template
+    .replaceAll("YYYY-MM-DD", date)
+    .replaceAll("YYYY", y ?? "")
+    .replaceAll("MM", m ?? "")
+    .replaceAll("DD", d ?? "");
+}
+
 export async function getVaultRoot(db: Db): Promise<string | null> {
   const row = db.$raw
     .query("SELECT value FROM settings WHERE key = 'obsidian_vault_path'")
@@ -149,7 +177,7 @@ export async function dailyNoteAppendRecap(
   const root = await getVaultRoot(db);
   if (!root) throw new Error("obsidian_vault_path is not configured");
   const date = input.date ?? new Date().toISOString().slice(0, 10);
-  const rel = join(DAILY_DIR, `${date}.md`);
+  const rel = resolveDailyNotePath(db, date);
   const abs = ensureWithinVault(root, rel);
   const heading = `\n## Passio recap\n`;
   let existing = "";

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-passio-seed">
+    <comment>Passio Seed</comment>
+    <comment xml:lang="de">Passio Seed (Plugin)</comment>
+    <glob pattern="*.seed"/>
+    <icon name="application-x-passio-seed"/>
+    <generic-icon name="application-x-executable"/>
+  </mime-type>
+</mime-info>

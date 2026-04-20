@@ -1,0 +1,15 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "flow-timer",
+  "version": "0.1.0",
+  "description": "90-min deep-work timer with 20-min break. Single-shot.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "start"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "weekly-review",
+  "version": "0.1.0",
+  "description": "Friday 17:00 prompt that opens a templated review note in your vault.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "run"
+    ],
+    "scheduler": [
+      {
+        "id": "friday",
+        "every_seconds": 604800
+      }
+    ]
+  }
+}

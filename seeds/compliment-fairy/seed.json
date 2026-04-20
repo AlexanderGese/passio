@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "compliment-fairy",
+  "version": "0.1.0",
+  "description": "Once/day random sincere compliment. 50+ pool, never repeats within a week.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "give"
+    ],
+    "scheduler": [
+      {
+        "id": "daily",
+        "every_seconds": 3600
+      }
+    ]
+  }
+}

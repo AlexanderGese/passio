@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#2a1a40"/>
+      <stop offset="100%" stop-color="#120E1A"/>
+    </radialGradient>
+    <radialGradient id="fruit" cx="35%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#f1a0d6"/>
+      <stop offset="40%" stop-color="#a855f7"/>
+      <stop offset="80%" stop-color="#4c1d95"/>
+      <stop offset="100%" stop-color="#2a0f5e"/>
+    </radialGradient>
+    <radialGradient id="highlight" cx="30%" cy="28%" r="30%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.7)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="stem" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7fd67a"/>
+      <stop offset="100%" stop-color="#2d7a3b"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bg)"/>
+  <ellipse cx="256" cy="450" rx="140" ry="20" fill="rgba(0,0,0,0.35)"/>
+  <circle cx="256" cy="288" r="150" fill="url(#fruit)"/>
+  <ellipse cx="206" cy="238" rx="80" ry="50" fill="url(#highlight)"/>
+  <path d="M 256 140 C 250 100, 240 70, 210 55 C 236 75, 244 110, 250 140 C 260 115, 280 100, 320 95 C 292 110, 274 128, 260 140" fill="url(#stem)"/>
+  <circle cx="210" cy="220" r="4" fill="rgba(255,255,255,0.35)"/>
+  <circle cx="240" cy="250" r="3" fill="rgba(255,255,255,0.35)"/>
+  <circle cx="300" cy="310" r="3" fill="rgba(255,255,255,0.2)"/>
+</svg>

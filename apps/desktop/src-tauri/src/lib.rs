@@ -40,6 +40,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(move |app| {
             let handle = app.handle().clone();
 
@@ -129,6 +132,36 @@ pub fn run() {
                 tracing::warn!(error=%e, "bubble dock failed");
             }
 
+            // If launched with a .seed file path in argv (file-association
+            // double-click on Linux/Win), forward it to the sidecar for
+            // installation after a short delay to let the sidecar finish boot.
+            let seed_args: Vec<String> = std::env::args()
+                .skip(1)
+                .filter(|a| a.to_lowercase().ends_with(".seed"))
+                .collect();
+            if !seed_args.is_empty() {
+                let sc = sidecar.clone();
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+                    for path in seed_args {
+                        match std::fs::read_to_string(&path) {
+                            Ok(body) => match serde_json::from_str::<serde_json::Value>(&body) {
+                                Ok(desc) => {
+                                    if let Err(e) = sc
+                                        .call("passio.seed.installDescriptor", desc)
+                                        .await
+                                    {
+                                        tracing::warn!(error=%e, "seed install failed");
+                                    }
+                                }
+                                Err(e) => tracing::warn!(error=%e, "seed file parse failed"),
+                            },
+                            Err(e) => tracing::warn!(error=%e, "seed file read failed"),
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -162,6 +195,8 @@ pub fn run() {
             commands::keychain_has,
             commands::keychain_delete,
             commands::first_run_done,
+            commands::register_seed_hotkeys,
+            commands::set_bubble_expanded,
             commands::policy_get,
             commands::policy_set,
             commands::policy_delete,
@@ -201,6 +236,8 @@ fn forward_event(handle: &AppHandle, _gate: &GateState, evt: SidecarEvent) {
         ),
         SidecarEvent::GateRequest(v) => ("passio://sidecar-gate-request", v),
         SidecarEvent::ChatChunk(v) => ("passio://chat-chunk", v),
+        SidecarEvent::AutoLoopUpdate(v) => ("passio://autoloop-update", v),
+        SidecarEvent::SeedEvent(v) => ("passio://seed-event", v),
     };
     let _ = handle.emit(topic, payload);
 }
@@ -235,11 +272,24 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 /// Dock the bubble window to the bottom-right corner of the primary monitor.
 /// Uses the configured window size (not `outer_size()`, which reports 0 before
 /// the window is realised on X11).
-const BUBBLE_WIN_W: f64 = 360.0;
-const BUBBLE_WIN_H: f64 = 540.0;
+const BUBBLE_WIN_W: f64 = 500.0;
+const BUBBLE_WIN_H: f64 = 760.0;
+const COLLAPSED_WIN_W: f64 = 128.0;
+const COLLAPSED_WIN_H: f64 = 128.0;
+// Padding from the screen edges. Big enough to clear most Linux taskbars
+// (Xfce/Gnome/Plasma) which sit in the bottom ~40px.
+const BUBBLE_EDGE_PADDING: f64 = 56.0;
 
 fn dock_bubble(app: &AppHandle) -> tauri::Result<()> {
-    const PADDING: f64 = 16.0;
+    // Boot state is collapsed — so the desktop is clickable everywhere
+    // except the avatar corner until the user expands.
+    resize_bubble_window(app, false)
+}
+
+/// Resize + reposition the bubble window to match its current collapsed/
+/// expanded state. Collapsed = 96×96 (just the avatar), expanded = 500×760.
+/// Either way we anchor bottom-right with a 16-px padding.
+pub fn resize_bubble_window(app: &AppHandle, expanded: bool) -> tauri::Result<()> {
     let Some(window) = app.get_webview_window("bubble") else {
         return Ok(());
     };
@@ -251,10 +301,20 @@ fn dock_bubble(app: &AppHandle) -> tauri::Result<()> {
     let mon_w = monitor_size.width as f64 / scale;
     let mon_h = monitor_size.height as f64 / scale;
 
-    let x = (mon_w - BUBBLE_WIN_W - PADDING).max(0.0);
-    let y = (mon_h - BUBBLE_WIN_H - PADDING).max(0.0);
-    tracing::info!(x, y, mon_w, mon_h, "docking bubble bottom-right");
+    let (w, h) = if expanded {
+        (BUBBLE_WIN_W, BUBBLE_WIN_H)
+    } else {
+        (COLLAPSED_WIN_W, COLLAPSED_WIN_H)
+    };
+
+    let x = (mon_w - w - BUBBLE_EDGE_PADDING).max(0.0);
+    let y = (mon_h - h - BUBBLE_EDGE_PADDING).max(0.0);
+    tracing::info!(expanded, x, y, w, h, mon_w, mon_h, "sizing bubble window");
+    window.set_size(tauri::LogicalSize::new(w, h))?;
     window.set_position(LogicalPosition::new(x, y))?;
+    // Some Linux compositors don't raise tiny windows without an explicit
+    // focus/show pair — nudge it so the collapsed avatar is always visible.
+    let _ = window.show();
     Ok(())
 }
 

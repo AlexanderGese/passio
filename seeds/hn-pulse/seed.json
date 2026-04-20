@@ -1,0 +1,16 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "hn-pulse",
+  "version": "0.1.0",
+  "description": "Top stories from Hacker News, refreshed every 15 min. Click to open.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "permissions": {
+    "network": ["hacker-news.firebaseio.com"]
+  },
+  "contributes": {
+    "tools": ["top_stories"],
+    "tabs": [{ "id": "hn-pulse-panel", "title": "HN", "icon": "🗞", "panel": "./panel.js" }],
+    "scheduler": [{ "id": "refresh", "every_seconds": 900 }]
+  }
+}

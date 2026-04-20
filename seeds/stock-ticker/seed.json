@@ -1,0 +1,41 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "stock-ticker",
+  "version": "0.1.0",
+  "description": "One symbol, 24h change — lives in the header chip row. Configure via settings.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "query1.finance.yahoo.com",
+      "query2.finance.yahoo.com"
+    ]
+  },
+  "contributes": {
+    "widgets": [
+      {
+        "id": "stock-ticker-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 300
+      }
+    ],
+    "tools": [
+      "quote"
+    ],
+    "settings": [
+      {
+        "id": "symbol",
+        "label": "Ticker",
+        "type": "string",
+        "default": "AAPL"
+      }
+    ]
+  }
+}

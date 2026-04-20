@@ -1,0 +1,24 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "ideas-parking-lot",
+  "version": "0.1.0",
+  "description": "Capture + tag ideas you don't want to forget. Separate from todos.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tabs": [
+      {
+        "id": "ideas-panel",
+        "title": "Ideas",
+        "icon": "💡",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "add",
+      "list"
+    ]
+  }
+}

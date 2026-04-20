@@ -1,0 +1,23 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "meetings-this-week",
+  "version": "0.1.0",
+  "description": "List of your calendar events this week with a prep-note link per event.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tabs": [
+      {
+        "id": "meetings-week-panel",
+        "title": "Week",
+        "icon": "📅",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "list"
+    ]
+  }
+}

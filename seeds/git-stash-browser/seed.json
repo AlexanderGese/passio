@@ -1,0 +1,18 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "git-stash-browser",
+  "version": "0.1.0",
+  "description": "List + re-apply git stashes in a path (stub, trusted).",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "trusted": true
+  },
+  "contributes": {
+    "tools": [
+      "list",
+      "pop"
+    ]
+  }
+}

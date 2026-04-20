@@ -1,0 +1,25 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "branch-age-warn",
+  "version": "0.1.0",
+  "description": "Warns on branches older than 30 days in a repo path. Trusted-required.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "trusted": true
+  },
+  "contributes": {
+    "tools": [
+      "scan"
+    ],
+    "settings": [
+      {
+        "id": "path",
+        "label": "Repo path",
+        "type": "string",
+        "default": "."
+      }
+    ]
+  }
+}

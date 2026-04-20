@@ -1,0 +1,46 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "rain-warning",
+  "version": "0.1.0",
+  "description": "Shows a ☂ chip when precipitation >20% forecast in the next 2h via Open-Meteo.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "api.open-meteo.com"
+    ]
+  },
+  "contributes": {
+    "widgets": [
+      {
+        "id": "rain-warning-chip",
+        "slot": "header",
+        "panel": "./panel.js"
+      }
+    ],
+    "scheduler": [
+      {
+        "id": "tick",
+        "every_seconds": 1800
+      }
+    ],
+    "tools": [
+      "check"
+    ],
+    "settings": [
+      {
+        "id": "lat",
+        "label": "Latitude",
+        "type": "number",
+        "default": 52.52
+      },
+      {
+        "id": "lon",
+        "label": "Longitude",
+        "type": "number",
+        "default": 13.405
+      }
+    ]
+  }
+}

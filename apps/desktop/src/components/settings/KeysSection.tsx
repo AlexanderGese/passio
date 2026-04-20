@@ -38,13 +38,13 @@ export function KeysSection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="API keys (stored in OS keychain)">
+    <div className="space-y-2 text-[14px]">
+      <Section label="API keys (stored in OS keychain)" hint="OpenAI powers chat, voice, and the scanner. Anthropic is the optional Claude fallback. All keys saved to OS keyring; fallback to ~/.config/passio/secrets.env if no keyring daemon.">
         {PROVIDERS.map((p) => (
           <div key={p.id} className="mb-2">
             <div className="flex items-center justify-between">
               <span>{p.label}</span>
-              <span className={has[p.id] ? "text-emerald-400" : "text-neutral-500"}>
+              <span className={has[p.id] ? "text-emerald-400" : "text-neutral-300"}>
                 {has[p.id] ? "✓ stored" : "not set"}
               </span>
             </div>
@@ -54,7 +54,7 @@ export function KeysSection() {
                 value={drafts[p.id] ?? ""}
                 onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))}
                 placeholder={has[p.id] ? "paste new to replace" : "paste key"}
-                className="no-drag flex-1 rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+                className="no-drag flex-1 rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
               />
               <button
                 type="button"
@@ -76,7 +76,7 @@ export function KeysSection() {
             </div>
           </div>
         ))}
-        {status && <p className="text-[11px] text-emerald-300">{status}</p>}
+        {status && <p className="text-[14px] text-emerald-300">{status}</p>}
       </Section>
     </div>
   );

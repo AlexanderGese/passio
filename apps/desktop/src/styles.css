@@ -10,21 +10,30 @@ body,
   padding: 0;
 }
 
+html {
+  font-size: 15px;
+}
+
 html,
 body {
   background: transparent !important;
   color-scheme: dark;
-  font-family:
-    "JetBrains Mono",
-    "Inter",
-    system-ui,
-    sans-serif;
+  color: #F5EAFF;
+  font-family: "Inter", "Söhne", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "ss02", "cv06";
   user-select: none;
   -webkit-user-select: none;
   overflow: hidden;
 }
 
-/* Allow dragging the bubble by the avatar container */
+/* Serif accent for Passio's voice — feels warmer, more "someone speaking" */
+.voice {
+  font-family: "Iowan Old Style", "Charter", "Georgia", ui-serif, serif;
+  font-feature-settings: "liga", "dlig";
+}
+
 .drag-region {
   -webkit-app-region: drag;
   app-region: drag;
@@ -32,4 +41,181 @@ body {
 .no-drag {
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.allow-select {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.2);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 184, 77, 0.4);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #FFB84D;
+  outline-offset: 1px;
+}
+
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #241B30 inset;
+  -webkit-text-fill-color: #F5EAFF;
+  caret-color: #F5EAFF;
+}
+
+/* Claude-ish motion */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(100% + 200px) 0; }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.animate-fade-in {
+  animation: fade-in 200ms ease-out;
+}
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+.shimmer {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 184, 77, 0) 0%,
+    rgba(255, 184, 77, 0.12) 50%,
+    rgba(255, 184, 77, 0) 100%
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* Aesthetic "paper" card — used for chat messages + cards */
+.card {
+  background: linear-gradient(180deg, #241B30 0%, #1E1629 100%);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  border-radius: 14px;
+}
+.card-subtle {
+  background: #1F1628;
+  border: 1px solid #3A2E4C;
+  border-radius: 12px;
+}
+
+/* Polish pass — smoother default transitions, better hover feedback */
+button, input, textarea, select {
+  transition: background-color 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              color 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              opacity 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+button:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* Scale hover for pill-shaped buttons (send, voice, etc.) */
+.hover-lift:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -4px rgba(168, 85, 247, 0.5);
+}
+
+/* Subtle glow ring on focus — matches the passionfruit palette */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(255, 184, 77, 0.8),
+    0 0 14px -2px rgba(255, 184, 77, 0.4);
+}
+
+/* Panel mount animation — scale + fade, plays once on expand */
+@keyframes panel-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-panel-pop {
+  animation: panel-pop 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: bottom right;
+}
+
+/* Tab switch — quick crossfade-slide */
+@keyframes tab-in {
+  0% { opacity: 0; transform: translateX(4px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.animate-tab-in {
+  animation: tab-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Ring of soft passionfruit light — used for active elements */
+.glow-pulp {
+  box-shadow: 0 0 20px -4px rgba(168, 85, 247, 0.45),
+              0 0 0 1px rgba(168, 85, 247, 0.35);
+}
+
+/* Slicker scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.25);
+  border-radius: 999px;
+  transition: background 120ms ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 157, 0.55);
+}
+
+/* Prefer reduced motion — respect the user */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

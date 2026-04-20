@@ -363,4 +363,16 @@ export function migrate(db: Database, hasVec: boolean): void {
       db.exec(stmt);
     }
   }
+
+  // Additive per-version patches. SQLite doesn't support IF NOT EXISTS on
+  // ADD COLUMN, so introspect via PRAGMA table_info and ALTER when needed.
+  addColumnIfMissing(db, "conversations", "goal_id", "INTEGER REFERENCES goals(id) ON DELETE SET NULL");
+}
+
+function addColumnIfMissing(db: Database, table: string, column: string, ddl: string): void {
+  const cols = db
+    .query(`PRAGMA table_info(${table})`)
+    .all() as { name: string }[];
+  if (cols.some((c) => c.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${ddl}`);
 }

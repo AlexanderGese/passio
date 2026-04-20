@@ -33,13 +33,18 @@ pub async fn chat(
     sidecar: State<'_, Sidecar>,
     prompt: String,
     conversation_id: Option<i64>,
+    goal_id: Option<i64>,
 ) -> Result<Value, String> {
-    let params = match conversation_id {
-        Some(id) => json!({ "prompt": prompt, "conversationId": id }),
-        None => json!({ "prompt": prompt }),
-    };
+    let mut obj = serde_json::Map::new();
+    obj.insert("prompt".into(), Value::String(prompt));
+    if let Some(id) = conversation_id {
+        obj.insert("conversationId".into(), json!(id));
+    }
+    if let Some(gid) = goal_id {
+        obj.insert("goalId".into(), json!(gid));
+    }
     sidecar
-        .call("passio.chat", params)
+        .call("passio.chat", Value::Object(obj))
         .await
         .map_err(|e| e.to_string())
 }
@@ -340,6 +345,24 @@ pub async fn sidecar_passthrough(
         .call(&method, params.unwrap_or(Value::Object(Default::default())))
         .await
         .map_err(|e| e.to_string())
+}
+
+// ---- Seeds: dynamic hotkey registration ----
+#[tauri::command]
+pub async fn register_seed_hotkeys(
+    app: tauri::AppHandle,
+    list: Vec<(String, String)>,
+) -> Result<(), String> {
+    crate::hotkeys::set_seed_hotkeys(&app, list).map_err(|e| e.to_string())
+}
+
+// ---- Bubble window sizing (click-through fix) ----
+#[tauri::command]
+pub async fn set_bubble_expanded(
+    app: tauri::AppHandle,
+    expanded: bool,
+) -> Result<(), String> {
+    crate::resize_bubble_window(&app, expanded).map_err(|e| e.to_string())
 }
 
 // ---- First-run helpers ----

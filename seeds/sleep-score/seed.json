@@ -1,0 +1,24 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "sleep-score",
+  "version": "0.1.0",
+  "description": "Daily sleep score input (1–100) + weekly average. Pairs well with Apple Health / Oura export if you have one.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tabs": [
+      {
+        "id": "sleep-panel",
+        "title": "Sleep",
+        "icon": "🌙",
+        "panel": "./panel.js"
+      }
+    ],
+    "tools": [
+      "log",
+      "avg"
+    ]
+  }
+}

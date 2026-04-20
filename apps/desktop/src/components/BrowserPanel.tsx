@@ -46,13 +46,13 @@ export function BrowserPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-2 text-xs">
+    <div className="flex h-full flex-col gap-2 text-[14px]">
       <header className="flex items-center justify-between">
-        <span className="uppercase tracking-wide text-neutral-400">Browser extension</span>
+        <span className="uppercase tracking-wide text-neutral-200">Browser extension</span>
         <StatusDot connected={status?.connected ?? false} clients={status?.clients ?? 0} />
       </header>
 
-      {!status && <p className="text-neutral-500">loading…</p>}
+      {!status && <p className="text-neutral-300">loading…</p>}
 
       {status && !status.connected && <Pairing status={status} />}
 
@@ -70,9 +70,9 @@ export function BrowserPanel() {
             {busy ? "summarizing…" : "Summarize current tab (bullet)"}
           </button>
           {summary && (
-            <div className="rounded-lg bg-black/30 p-3 text-[11px] leading-relaxed">
+            <div className="rounded-lg bg-[#1A1422] p-3 text-[14px] leading-relaxed">
               <p className="truncate font-medium text-passio-pulp">{summary.title}</p>
-              <p className="truncate text-neutral-500">{summary.url}</p>
+              <p className="truncate text-neutral-300">{summary.url}</p>
               <pre className="mt-1 whitespace-pre-wrap font-sans text-neutral-200">{summary.summary}</pre>
             </div>
           )}
@@ -85,7 +85,7 @@ export function BrowserPanel() {
 
 function StatusDot({ connected, clients }: { connected: boolean; clients: number }) {
   return (
-    <span className="flex items-center gap-1.5 text-[11px] text-neutral-400">
+    <span className="flex items-center gap-1.5 text-[14px] text-neutral-200">
       <span
         className={clsx(
           "h-2 w-2 rounded-full",
@@ -109,15 +109,15 @@ function Pairing({ status }: { status: BridgeStatus }) {
     }
   }
   return (
-    <div className="space-y-2 rounded-lg bg-black/30 p-3">
-      <p className="text-[11px] text-neutral-400 leading-relaxed">
+    <div className="space-y-2 rounded-lg bg-[#1A1422] p-3">
+      <p className="text-[14px] text-neutral-200 leading-relaxed">
         Install the unpacked Chrome extension (
         <code className="text-passio-pulp">apps/extension/dist</code>) and paste these
         into its options page:
       </p>
       <Row label="Port" value={String(status.port)} copied={copied === "port"} onCopy={() => copy("port", String(status.port))} />
       <Row label="Token" value={status.token} mono truncate copied={copied === "token"} onCopy={() => copy("token", status.token)} />
-      <p className="text-[10px] text-neutral-600">
+      <p className="text-[14px] text-neutral-400">
         Token rotates on every Passio restart; re-pair after restart.
       </p>
     </div>
@@ -141,10 +141,10 @@ function Row({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-10 text-neutral-500">{label}</span>
+      <span className="w-10 text-neutral-300">{label}</span>
       <code
         className={clsx(
-          "flex-1 rounded bg-black/60 px-2 py-1 text-[11px]",
+          "flex-1 rounded bg-[#0E0A14] px-2 py-1 text-[14px]",
           mono && "font-mono",
           truncate && "truncate",
         )}
@@ -155,7 +155,7 @@ function Row({
       <button
         type="button"
         onClick={onCopy}
-        className="rounded-md bg-passio-skinLight/30 px-2 py-1 text-[11px] hover:bg-passio-skinLight/40"
+        className="rounded-md bg-passio-skinLight/30 px-2 py-1 text-[14px] hover:bg-passio-skinLight/40"
       >
         {copied ? "✓" : "copy"}
       </button>

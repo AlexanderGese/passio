@@ -39,9 +39,9 @@ export function CalendarSection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="Calendar sources (.ics URL or path)">
-        <p className="mb-2 text-[11px] text-neutral-400">
+    <div className="space-y-2 text-[14px]">
+      <Section label="Calendar sources" hint="Public or secret .ics URLs (Google Calendar → Settings → Integrate calendar → Secret iCal URL) or local file paths. Upcoming events surface in morning briefings.">
+        <p className="mb-2 text-[14px] text-neutral-200">
           Google Calendar → Settings → Integrate calendar → Secret iCal URL. Or any local .ics path.
         </p>
         <div className="flex gap-1">
@@ -49,7 +49,7 @@ export function CalendarSection() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder="https://calendar.google.com/.../basic.ics"
-            className="no-drag flex-1 rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag flex-1 rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
           <button
             type="button"
@@ -60,7 +60,7 @@ export function CalendarSection() {
             add
           </button>
         </div>
-        {err && <p className="mt-2 text-[11px] text-red-300">{err}</p>}
+        {err && <p className="mt-2 text-[14px] text-red-300">{err}</p>}
         <div className="mt-2">
           <ChipList items={sources} onRemove={remove} />
         </div>

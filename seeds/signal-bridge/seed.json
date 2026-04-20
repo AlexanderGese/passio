@@ -1,0 +1,33 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "signal-bridge",
+  "version": "0.1.0",
+  "description": "Send notes to Signal via a local signal-cli daemon (you configure). Receive not implemented.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "127.0.0.1",
+      "localhost"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "send"
+    ],
+    "settings": [
+      {
+        "id": "daemon_url",
+        "label": "signal-cli daemon URL",
+        "type": "string",
+        "default": "http://127.0.0.1:8080"
+      },
+      {
+        "id": "number",
+        "label": "Your Signal number",
+        "type": "string"
+      }
+    ]
+  }
+}

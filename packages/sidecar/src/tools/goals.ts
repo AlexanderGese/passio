@@ -185,6 +185,15 @@ export async function milestoneAdd(
   return { id: row.id };
 }
 
+/**
+ * Delete a goal permanently (and its milestones via cascade). Use
+ * goalUpdate({ status: 'abandoned' }) for soft delete.
+ */
+export async function goalDelete(db: Db, input: { id: number }): Promise<{ ok: true }> {
+  await db.delete(goals).where(eq(goals.id, input.id));
+  return { ok: true };
+}
+
 export async function milestoneDone(db: Db, input: { id: number }): Promise<{ ok: true; progress: number }> {
   const [m] = await db.select().from(milestones).where(eq(milestones.id, input.id));
   if (!m) throw new Error(`milestone ${input.id} not found`);

@@ -1,0 +1,16 @@
+{
+  "name": "@passio/seed-cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "passio-seed": "./src/cli.ts",
+    "license-gen": "./src/license.ts"
+  },
+  "scripts": {
+    "start": "bun run src/cli.ts"
+  },
+  "dependencies": {
+    "@passio/shared": "workspace:*"
+  }
+}

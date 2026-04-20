@@ -17,7 +17,11 @@ use tokio::process::{Child, ChildStdin, Command};
 use tokio::sync::{oneshot, Mutex as AsyncMutex};
 use tokio::task::JoinHandle;
 
-const RPC_TIMEOUT: Duration = Duration::from_secs(30);
+/// Generic RPC timeout. Long enough for chat with multiple tool calls
+/// + streaming (openai can hold a connection for a minute on dense
+/// reasoning replies). Individual fast RPCs that want to fail sooner
+/// should wrap their own timeout on the sidecar side.
+const RPC_TIMEOUT: Duration = Duration::from_secs(120);
 const RESPAWN_WINDOW: Duration = Duration::from_secs(60);
 const MAX_RESPAWNS: usize = 3;
 
@@ -57,6 +61,8 @@ pub enum SidecarEvent {
     SpawnFailed { reason: String },
     GateRequest(Value),
     ChatChunk(Value),
+    AutoLoopUpdate(Value),
+    SeedEvent(Value),
 }
 
 pub type EventSink = Arc<dyn Fn(SidecarEvent) + Send + Sync>;
@@ -95,12 +101,37 @@ impl Sidecar {
         }
     }
 
-    /// Ensure the sidecar is running; start it if cold. Returns Ok when
+    /// Ensure the sidecar is running; start it if cold OR if the previously
+    /// spawned process has exited (idle timeout, crash). Returns Ok when
     /// the process is spawned and stdin is available.
     pub async fn ensure_running(&self) -> Result<()> {
         let mut guard = self.inner.lock().await;
-        if guard.child.is_some() {
-            return Ok(());
+
+        // If we have a child, verify it's still alive. try_wait() returns
+        // Some(_) when the process has exited — clear the stale handle so
+        // we fall through to respawn.
+        if let Some(child) = guard.child.as_mut() {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    tracing::info!(?status, "sidecar exited — respawning");
+                    guard.child = None;
+                    guard.stdin = None;
+                    if let Some(h) = guard.reader_handle.take() {
+                        h.abort();
+                    }
+                    self.pending_shared.lock().clear();
+                }
+                Ok(None) => return Ok(()), // still alive
+                Err(e) => {
+                    tracing::warn!(error = %e, "try_wait failed; treating as dead");
+                    guard.child = None;
+                    guard.stdin = None;
+                    if let Some(h) = guard.reader_handle.take() {
+                        h.abort();
+                    }
+                    self.pending_shared.lock().clear();
+                }
+            }
         }
 
         // Enforce respawn rate-limit
@@ -195,8 +226,41 @@ impl Sidecar {
         Ok(())
     }
 
-    /// Send a request and await its response.
+    /// Send a request and await its response. Retries once if the write
+    /// fails with BrokenPipe — the sidecar may have died right before we
+    /// tried to reach it, and ensure_running() is only accurate at the
+    /// instant it's called.
     pub async fn call(&self, method: &str, params: Value) -> Result<Value> {
+        match self.call_once(method, params.clone()).await {
+            Ok(v) => Ok(v),
+            Err(e) => {
+                let msg = e.to_string();
+                if msg.contains("Broken pipe")
+                    || msg.contains("broken pipe")
+                    || msg.contains("BrokenPipe")
+                    || msg.contains("no sidecar stdin")
+                {
+                    tracing::warn!("sidecar write failed ({msg}); respawning + retrying once");
+                    {
+                        let mut guard = self.inner.lock().await;
+                        if let Some(mut child) = guard.child.take() {
+                            let _ = child.start_kill();
+                        }
+                        guard.stdin = None;
+                        if let Some(h) = guard.reader_handle.take() {
+                            h.abort();
+                        }
+                        self.pending_shared.lock().clear();
+                    }
+                    self.call_once(method, params).await
+                } else {
+                    Err(e)
+                }
+            }
+        }
+    }
+
+    async fn call_once(&self, method: &str, params: Value) -> Result<Value> {
         self.ensure_running().await?;
         let (tx, rx) = oneshot::channel();
         let id = {
@@ -312,6 +376,16 @@ fn dispatch_notification(notif: RpcNotification, events: &EventSink) {
         "passio.chat.chunk" => {
             if let Some(params) = notif.params {
                 events(SidecarEvent::ChatChunk(params));
+            }
+        }
+        "passio.autoLoop.update" => {
+            if let Some(params) = notif.params {
+                events(SidecarEvent::AutoLoopUpdate(params));
+            }
+        }
+        "passio.seed.event" => {
+            if let Some(params) = notif.params {
+                events(SidecarEvent::SeedEvent(params));
             }
         }
         other => {

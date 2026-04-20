@@ -1,0 +1,22 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "airtable-query",
+  "version": "0.1.0",
+  "description": "Saved Airtable queries with a one-click refresh.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "network": [
+      "api.airtable.com"
+    ],
+    "secrets": [
+      "airtable_key"
+    ]
+  },
+  "contributes": {
+    "tools": [
+      "run"
+    ]
+  }
+}

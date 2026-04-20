@@ -8,7 +8,11 @@ import { MailSection } from "./settings/MailSection";
 import { PersonaSection } from "./settings/PersonaSection";
 import { PolicySection } from "./settings/PolicySection";
 import { PrivacySection } from "./settings/PrivacySection";
+import { AboutSection } from "./settings/AboutSection";
+import { HeaderLayoutSection } from "./settings/HeaderLayoutSection";
 import { RssSection } from "./settings/RssSection";
+import { TodoMdSection } from "./settings/TodoMdSection";
+import { VaultSection } from "./settings/VaultSection";
 import { WeatherSection } from "./settings/WeatherSection";
 
 type Section =
@@ -19,69 +23,77 @@ type Section =
   | "calendar"
   | "rss"
   | "weather"
+  | "vault"
+  | "todomd"
   | "policy"
   | "automation"
-  | "privacy";
+  | "privacy"
+  | "header"
+  | "about";
 
-const SECTIONS: { id: Section; label: string }[] = [
-  { id: "persona", label: "Persona" },
-  { id: "keybinds", label: "Keybinds" },
-  { id: "keys", label: "API keys" },
-  { id: "mail", label: "Mail" },
-  { id: "calendar", label: "Calendar" },
-  { id: "rss", label: "RSS" },
-  { id: "weather", label: "Weather" },
-  { id: "policy", label: "Policy" },
-  { id: "automation", label: "Automation" },
-  { id: "privacy", label: "Privacy" },
+const SECTIONS: { id: Section; label: string; icon: string }[] = [
+  { id: "persona", label: "Persona", icon: "🍇" },
+  { id: "header", label: "Header", icon: "🧩" },
+  { id: "keybinds", label: "Keybinds", icon: "⌨" },
+  { id: "keys", label: "API keys", icon: "🔑" },
+  { id: "mail", label: "Mail", icon: "✉" },
+  { id: "calendar", label: "Calendar", icon: "📅" },
+  { id: "rss", label: "RSS", icon: "📡" },
+  { id: "weather", label: "Weather", icon: "☀" },
+  { id: "vault", label: "Vault", icon: "📚" },
+  { id: "todomd", label: "Todo.md", icon: "✅" },
+  { id: "policy", label: "Policy", icon: "🛡" },
+  { id: "automation", label: "Automation", icon: "⚡" },
+  { id: "privacy", label: "Privacy", icon: "🔒" },
+  { id: "about", label: "About", icon: "ℹ" },
 ];
 
-/**
- * Settings shell — two-column layout with a left-rail section picker and
- * the active section rendered on the right. Each section is a standalone
- * file under ./settings/.
- */
 export function SettingsPanel({ onRunWizard }: { onRunWizard: () => void }) {
   const [section, setSection] = useState<Section>("persona");
 
   return (
-    <div className="flex h-full gap-2 text-xs">
-      <nav className="flex w-24 shrink-0 flex-col gap-0.5 overflow-y-auto">
+    <div className="flex h-full gap-3">
+      <nav className="flex w-[108px] shrink-0 flex-col gap-1 overflow-y-auto">
         {SECTIONS.map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() => setSection(s.id)}
             className={clsx(
-              "rounded-md px-2 py-1 text-left transition-colors",
+              "flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium transition-colors",
               section === s.id
-                ? "bg-passio-skinLight/40 text-passio-pulp"
-                : "text-neutral-400 hover:text-neutral-100",
+                ? "bg-passio-skin text-passio-cream"
+                : "text-neutral-300 hover:bg-passio-panelAlt hover:text-passio-cream",
             )}
           >
-            {s.label}
+            <span className="text-[15px]">{s.icon}</span>
+            <span>{s.label}</span>
           </button>
         ))}
         <button
           type="button"
           onClick={onRunWizard}
-          className="mt-2 rounded-md border border-passio-skinLight/30 px-2 py-1 text-[10px] text-neutral-400 hover:text-passio-pulp"
+          className="mt-2 rounded-lg border border-passio-border px-2.5 py-2 text-[12px] font-medium text-neutral-300 transition-colors hover:border-passio-pulp hover:text-passio-pulp"
         >
           Re-run wizard
         </button>
       </nav>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1 space-y-2.5">
         {section === "persona" && <PersonaSection />}
+        {section === "header" && <HeaderLayoutSection />}
         {section === "keybinds" && <KeybindsSection />}
         {section === "keys" && <KeysSection />}
         {section === "mail" && <MailSection />}
         {section === "calendar" && <CalendarSection />}
         {section === "rss" && <RssSection />}
         {section === "weather" && <WeatherSection />}
+        {section === "vault" && <VaultSection />}
+        {section === "todomd" && <TodoMdSection />}
         {section === "policy" && <PolicySection />}
         {section === "automation" && <AutomationSection />}
         {section === "privacy" && <PrivacySection />}
+        {section === "about" && <AboutSection />}
       </div>
     </div>
   );

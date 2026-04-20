@@ -7,6 +7,7 @@ import type { RpcBus } from "../rpc.js";
 import * as browser from "../tools/browser.js";
 import { explainSelection, savePage, summarizePage } from "../tools/browser_compound.js";
 import { getPersona } from "../tools/persona.js";
+import { activityStats } from "../tools/system.js";
 import { conversations, messages } from "../db/schema.js";
 import { retrieve } from "../context/retrieve.js";
 import {
@@ -73,10 +74,17 @@ function modelName(): string {
   return process.env.PASSIO_MODEL_STANDARD || "gpt-4.1";
 }
 
+function tierFor(model: string): "economy" | "standard" | "power" | "reasoning" {
+  if (/o3|o1/.test(model)) return "reasoning";
+  if (/gpt-5|opus/.test(model)) return "power";
+  if (/mini|haiku|nano/.test(model)) return "economy";
+  return "standard";
+}
+
 export async function chat(
   db: Db,
   emit: Emitter,
-  input: { prompt: string; conversationId?: number },
+  input: { prompt: string; conversationId?: number; goalId?: number },
   bridge?: BridgeServer,
   bus?: RpcBus,
 ): Promise<{ conversationId: number; text: string }> {
@@ -85,7 +93,7 @@ export async function chat(
   if (!convId) {
     const [conv] = await db
       .insert(conversations)
-      .values({ mode: "text" })
+      .values({ mode: "text", goalId: input.goalId ?? null })
       .returning({ id: conversations.id });
     if (!conv) throw new Error("failed to start conversation");
     convId = conv.id;
@@ -105,26 +113,116 @@ export async function chat(
         .join("\n")
     : "Retrieved context: (none yet — this is a cold memory)";
 
+  // If scoped to a goal, inject its milestones + open todos into the
+  // system prompt so the agent is naturally focused on that goal.
+  let goalBlock = "";
+  if (input.goalId) {
+    const g = db.$raw
+      .query("SELECT title, category, target_date, progress, motivation FROM goals WHERE id = ?")
+      .get(input.goalId) as
+      | { title: string; category: string | null; target_date: string | null; progress: number; motivation: string | null }
+      | undefined;
+    if (g) {
+      const ms = db.$raw
+        .query(
+          "SELECT title, due_date, status FROM milestones WHERE goal_id = ? ORDER BY sort_order, due_date",
+        )
+        .all(input.goalId) as { title: string; due_date: string | null; status: string }[];
+      const openTodos = db.$raw
+        .query(
+          "SELECT text, due_at, priority FROM todos WHERE goal_id = ? AND done = 0 ORDER BY priority DESC, due_at ASC LIMIT 10",
+        )
+        .all(input.goalId) as { text: string; due_at: string | null; priority: number }[];
+      goalBlock = [
+        `\nThis conversation is scoped to ONE goal — stay focused on it:`,
+        `Goal: ${g.title}${g.category ? ` [${g.category}]` : ""}${g.target_date ? ` · target ${g.target_date}` : ""} · ${Math.round((g.progress ?? 0) * 100)}% done`,
+        g.motivation ? `Why: ${g.motivation}` : "",
+        ms.length ? `Milestones:\n${ms.map((m) => `  ${m.status === "done" ? "✓" : "·"} ${m.title}${m.due_date ? ` (due ${m.due_date})` : ""}`).join("\n")}` : "",
+        openTodos.length ? `Open todos for this goal:\n${openTodos.map((t) => `  [p${t.priority}] ${t.text}${t.due_at ? ` · ${t.due_at}` : ""}`).join("\n")}` : "",
+      ]
+        .filter((s) => s !== "")
+        .join("\n");
+    }
+  }
+
   const tools = buildTools(db, bridge, bus);
   const persona = getPersona(db);
-  const sysPrompt = BASE_SYSTEM_PROMPT.replaceAll("{NAME}", persona.name);
 
-  // streamText lets us forward tokens as they arrive so the HUD can
-  // render incrementally. We still collect the full text for DB insertion.
-  const stream = streamText({
-    model: openai()(modelName()),
-    system: `${sysPrompt}\n\n${contextBlock}`,
-    prompt: input.prompt,
-    tools,
-    stopWhen: stepCountIs(6),
-  });
+  // Ambient activity snapshot — lets Passio reference what the user is
+  // doing right now without them having to say it.
+  const act = activityStats(db);
+  const activityBlock = act.currentApp
+    ? `\n\nAmbient context (do not mention unless relevant):` +
+      `\n  Active: ${act.currentApp}${act.currentTitle ? ` — ${act.currentTitle}` : ""}` +
+      (act.streakDistractionMin > 10
+        ? `\n  ⚠ On distracting app for ${act.streakDistractionMin}min.`
+        : "")
+    : "";
+
+  // Pull any persona prompt extras — tree-picker's composed prompt AND the
+  // user's free-form override. Both concatenate onto the base system prompt.
+  let personaExtra = "";
+  try {
+    const treeRow = db.$raw
+      .query("SELECT value FROM settings WHERE key = 'persona_prompt_extra'")
+      .get() as { value: string } | undefined;
+    if (treeRow) {
+      const parsed = JSON.parse(treeRow.value) as { prompt?: string };
+      if (parsed.prompt) personaExtra += `\n\nVoice / stance: ${parsed.prompt}`;
+    }
+    const customRow = db.$raw
+      .query("SELECT value FROM settings WHERE key = 'persona_prompt_extra_custom'")
+      .get() as { value: string } | undefined;
+    if (customRow && customRow.value.trim()) {
+      personaExtra += `\n\nUser-defined rules:\n${customRow.value.trim()}`;
+    }
+  } catch {
+    /* best-effort */
+  }
+
+  const sysPrompt =
+    BASE_SYSTEM_PROMPT.replaceAll("{NAME}", persona.name) + personaExtra + goalBlock + activityBlock;
 
   let full = "";
-  for await (const delta of stream.textStream) {
-    full += delta;
+  try {
+    // streamText lets us forward tokens as they arrive so the HUD can
+    // render incrementally. We still collect the full text for DB insertion.
+    const stream = streamText({
+      model: openai()(modelName()),
+      system: `${sysPrompt}\n\n${contextBlock}`,
+      prompt: input.prompt,
+      tools,
+      stopWhen: stepCountIs(6),
+    });
+
+    for await (const delta of stream.textStream) {
+      full += delta;
+      emit("passio.chat.chunk", { conversationId: convId, delta, done: false });
+    }
+
+    // Make sure the stream promise resolved (surfaces errors stored on the
+    // stream object that wouldn't throw during iteration).
+    await stream.text;
+
+    // Cost tracking — log total tokens once the stream settles.
+    try {
+      const usage = await stream.usage;
+      const { logUsage } = await import("../tools/cost.js");
+      logUsage(db, {
+        tier: tierFor(modelName()),
+        model: modelName(),
+        inTokens: usage?.inputTokens ?? 0,
+        outTokens: usage?.outputTokens ?? 0,
+      });
+    } catch {
+      /* usage not critical */
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    full = full ? `${full}\n\n⚠ ${reason}` : `⚠ ${reason}`;
     emit("passio.chat.chunk", {
       conversationId: convId,
-      delta,
+      delta: full.endsWith(reason) ? `\n\n⚠ ${reason}` : `⚠ ${reason}`,
       done: false,
     });
   }
@@ -357,7 +455,35 @@ function buildTools(db: Db, bridge?: BridgeServer, bus?: RpcBus) {
       }),
       execute: async (args) => dailyNoteAppendRecap(db, args),
     }),
+    ...buildSeedTools(),
   };
+}
+
+/**
+ * Dynamically expose tools registered by running Seeds as agent tools.
+ * Each seed's `tools.register({name})` becomes `seed_<seed>_<name>` in the
+ * agent's tool list. Input/output are untyped — we trust the seed to
+ * validate and return JSON-serializable results.
+ */
+function buildSeedTools(): Record<string, ReturnType<typeof tool>> {
+  const out: Record<string, ReturnType<typeof tool>> = {};
+  try {
+    // Import lazily so we don't pull runtime state at module-load.
+    const { registeredTools, invokeToolOnSeed } = require("../seeds/runtime.js") as typeof import("../seeds/runtime.js");
+    for (const t of registeredTools()) {
+      const toolName = `seed_${t.seed}_${t.name}`.replace(/-/g, "_");
+      out[toolName] = tool({
+        description: t.description
+          ? `[Seed ${t.seed}] ${t.description}`
+          : `Tool '${t.name}' from seed '${t.seed}'.`,
+        inputSchema: z.record(z.string(), z.unknown()),
+        execute: async (args: unknown) => invokeToolOnSeed(t.seed, t.name, args),
+      });
+    }
+  } catch {
+    /* seeds runtime unavailable — no-op */
+  }
+  return out;
 }
 
 function buildBrowserTools(db: Db, bridge: BridgeServer, bus?: RpcBus) {

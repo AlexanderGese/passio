@@ -1,0 +1,20 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "stripe-command",
+  "version": "0.1.0",
+  "description": "Stripe remote — invoicing, refunds, subscriptions, disputes, customer ops. $49.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-stripe-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["api.stripe.com"], "secrets": ["secret_key"] },
+  "contributes": {
+    "tools": ["charge_list","charge","refund","customer_search","customer_create","invoice_create","invoice_send","invoice_void","sub_list","sub_cancel","sub_pause","dispute_list","payout_list","balance"],
+    "tabs": [{ "id": "stripe-command-panel", "title": "Stripe", "icon": "💳", "panel": "./panel.js" }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "secret_key", "label": "Stripe secret key (sk_…)", "type": "secret" }
+    ]
+  }
+}

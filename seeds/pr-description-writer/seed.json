@@ -1,0 +1,15 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "pr-description-writer",
+  "version": "0.1.0",
+  "description": "Takes a branch's diff and drafts a PR description with sections.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "draft"
+    ]
+  }
+}

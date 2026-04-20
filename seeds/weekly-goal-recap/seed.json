@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "weekly-goal-recap",
+  "version": "0.1.0",
+  "description": "Friday email/note: the week's wins, blockers, goals progress.",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {},
+  "contributes": {
+    "tools": [
+      "run"
+    ],
+    "scheduler": [
+      {
+        "id": "fri",
+        "every_seconds": 3600
+      }
+    ]
+  }
+}

@@ -15,8 +15,8 @@
       {
         "label": "bubble",
         "title": "Passio",
-        "width": 360,
-        "height": 540,
+        "width": 128,
+        "height": 128,
         "minWidth": 80,
         "minHeight": 80,
         "resizable": false,
@@ -41,7 +41,7 @@
     "category": "Productivity",
     "copyright": "Copyright (c) 2026 Alexander Gese",
     "shortDescription": "Local-first agentic desktop AI assistant",
-    "longDescription": "Passio — a passionfruit-shaped desktop AI assistant that lives in a floating bubble, remembers everything, and helps you pursue big goals.",
+    "longDescription": "Passio — a local-first desktop AI assistant that lives in a floating bubble, remembers everything, runs autonomous loops, and grows via Seeds (plugins).",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -50,6 +50,15 @@
       "icons/icon.png"
     ],
     "resources": ["resources/*"],
+    "fileAssociations": [
+      {
+        "ext": ["seed"],
+        "name": "Passio Seed",
+        "description": "A Passio plugin descriptor",
+        "mimeType": "application/x-passio-seed",
+        "role": "Editor"
+      }
+    ],
     "linux": {
       "deb": {
         "depends": [

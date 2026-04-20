@@ -1,0 +1,21 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "readwise-command",
+  "version": "0.1.0",
+  "description": "Readwise remote — export all highlights, daily review pull, save URL to Reader, search your library. $29.",
+  "author": "Passio team",
+  "homepage": "https://alexandergese.gumroad.com/l/passio-readwise-command",
+  "entry": "./index.js",
+  "licensed": true,
+  "licensePublicKey": "REPLACE_WITH_BASE64_ED25519_PUBKEY",
+  "permissions": { "network": ["readwise.io"], "secrets": ["token"] },
+  "contributes": {
+    "tools": ["me","export_all","review_daily","save_to_reader","search_highlights"],
+    "tabs": [{ "id": "readwise-command-panel", "title": "Readwise", "icon": "📖", "panel": "./panel.js" }],
+    "scheduler": [{ "id": "morning", "every_seconds": 3600 }],
+    "settings": [
+      { "id": "license", "label": "License key", "type": "secret" },
+      { "id": "token", "label": "Readwise access token", "type": "secret" }
+    ]
+  }
+}

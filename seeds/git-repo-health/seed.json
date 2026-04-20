@@ -1,0 +1,25 @@
+{
+  "$schema": "passio-seed@1",
+  "name": "git-repo-health",
+  "version": "0.1.0",
+  "description": "Scan a path for uncommitted, unpushed, dirty state. Needs trusted:true (runs git).",
+  "author": "Passio team",
+  "entry": "./index.js",
+  "language": "js",
+  "permissions": {
+    "trusted": true
+  },
+  "contributes": {
+    "tools": [
+      "scan"
+    ],
+    "settings": [
+      {
+        "id": "path",
+        "label": "Repo path",
+        "type": "string",
+        "default": "."
+      }
+    ]
+  }
+}

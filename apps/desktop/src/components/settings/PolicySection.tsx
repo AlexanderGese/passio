@@ -52,8 +52,8 @@ export function PolicySection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="Countdown before autonomous action">
+    <div className="space-y-2 text-[14px]">
+      <Section label="Countdown before autonomous action" hint="When Passio tries to click/type/navigate on an ask_first domain, this is how long you have to cancel with Esc.">
         <input
           type="range"
           min={1}
@@ -62,13 +62,13 @@ export function PolicySection() {
           onChange={(e) => changeCountdown(Number(e.target.value))}
           className="no-drag w-full accent-passio-pulp"
         />
-        <p className="text-[11px] text-neutral-400">{countdown}s — Esc cancels</p>
-        {status && <p className="text-[10px] text-emerald-300">{status}</p>}
+        <p className="text-[14px] text-neutral-200">{countdown}s — Esc cancels</p>
+        {status && <p className="text-[14px] text-emerald-300">{status}</p>}
       </Section>
 
-      <Section label="Per-host policy">
+      <Section label="Per-host policy" hint="How Passio should treat each domain. observe_only = never act; ask_first = countdown each time; full_auto = silent. Default for unlisted domains is full_auto.">
         {Object.keys(domains).length === 0 && (
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[14px] text-neutral-300">
             (no overrides — every host defaults to full_auto)
           </p>
         )}
@@ -81,7 +81,7 @@ export function PolicySection() {
               <select
                 value={policy}
                 onChange={(e) => changeHost(host, e.target.value as Policy)}
-                className="no-drag rounded-md border border-white/10 bg-black/40 p-1"
+                className="no-drag rounded-md border border-passio-border bg-[#241B30] p-1"
               >
                 <option value="observe_only">observe_only</option>
                 <option value="ask_first">ask_first</option>
@@ -90,7 +90,7 @@ export function PolicySection() {
               <button
                 type="button"
                 onClick={() => removeHost(host)}
-                className="text-neutral-500 hover:text-red-300"
+                className="text-neutral-300 hover:text-red-300"
               >
                 ✕
               </button>
@@ -102,12 +102,12 @@ export function PolicySection() {
             value={newHost}
             onChange={(e) => setNewHost(e.target.value)}
             placeholder="github.com"
-            className="no-drag flex-1 rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag flex-1 rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
           <select
             value={newPolicy}
             onChange={(e) => setNewPolicy(e.target.value as Policy)}
-            className="no-drag rounded-md border border-white/10 bg-black/40 p-1"
+            className="no-drag rounded-md border border-passio-border bg-[#241B30] p-1"
           >
             <option value="observe_only">observe_only</option>
             <option value="ask_first">ask_first</option>
@@ -124,24 +124,24 @@ export function PolicySection() {
         </div>
       </Section>
 
-      <Section label="Dangerous-action blocklist">
+      <Section label="Dangerous-action blocklist" hint="Regex patterns that force a countdown even on full_auto domains. Covers form submits, checkout flows, and unsubscribe links by default.">
         {blocklist.length === 0 ? (
-          <p className="text-[11px] text-neutral-500">(empty)</p>
+          <p className="text-[14px] text-neutral-300">(empty)</p>
         ) : (
           <ul className="space-y-1">
             {blocklist.map((b, i) => (
               <li key={`${b.kind}:${b.pattern}:${i}`} className="flex items-center gap-2">
-                <span className="rounded bg-black/40 px-1 text-[10px] text-neutral-400">
+                <span className="rounded bg-[#241B30] px-1 text-[14px] text-neutral-200">
                   {b.kind}
                 </span>
-                <code className="flex-1 truncate text-[11px]" title={b.pattern}>
+                <code className="flex-1 truncate text-[14px]" title={b.pattern}>
                   {b.pattern}
                 </code>
-                <span className="text-[10px] text-neutral-500">{b.reason}</span>
+                <span className="text-[14px] text-neutral-300">{b.reason}</span>
                 <button
                   type="button"
                   onClick={() => removeBlocklistEntry(i)}
-                  className="text-neutral-500 hover:text-red-300"
+                  className="text-neutral-300 hover:text-red-300"
                 >
                   ✕
                 </button>

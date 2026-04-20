@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#3a2030"/>
+      <stop offset="100%" stop-color="#1a0f18"/>
+    </radialGradient>
+    <linearGradient id="leaf" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffc68a"/>
+      <stop offset="60%" stop-color="#ff9a4d"/>
+      <stop offset="100%" stop-color="#c2490f"/>
+    </linearGradient>
+    <linearGradient id="stem" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d96c2a"/>
+      <stop offset="100%" stop-color="#7a3414"/>
+    </linearGradient>
+    <linearGradient id="seed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffd76b"/>
+      <stop offset="60%" stop-color="#e6922b"/>
+      <stop offset="100%" stop-color="#7a3a0c"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="448" height="448" rx="96" fill="url(#bg)"/>
+  <ellipse cx="256" cy="330" rx="170" ry="60" fill="rgba(255,154,77,0.18)"/>
+  <g transform="translate(256 360)">
+    <path d="M -95 -8 C -95 -55, -60 -80, 0 -80 C 60 -80, 95 -55, 95 -8 C 95 30, 55 46, 0 46 C -55 46, -95 30, -95 -8 Z" fill="url(#seed)"/>
+    <path d="M -40 -70 C -20 -55, 20 -55, 40 -70" fill="none" stroke="#3a1800" stroke-width="6" stroke-linecap="round"/>
+    <path d="M -70 -30 C -55 -55, -20 -68, 10 -68" fill="none" stroke="rgba(255,240,180,0.55)" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <path d="M 256 290 C 250 220, 256 165, 256 100" stroke="url(#stem)" stroke-width="18" stroke-linecap="round" fill="none"/>
+  <path d="M 256 210 C 170 200, 120 155, 130 100 C 195 110, 250 145, 256 205 Z" fill="url(#leaf)"/>
+  <path d="M 256 180 C 340 165, 395 115, 390 60 C 320 70, 265 110, 256 178 Z" fill="url(#leaf)"/>
+  <circle cx="256" cy="98" r="6" fill="#ffc68a"/>
+  <circle cx="258" cy="96" r="2" fill="#ffffff" opacity="0.9"/>
+</svg>

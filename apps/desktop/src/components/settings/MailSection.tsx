@@ -33,14 +33,14 @@ export function MailSection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="Gmail credentials">
-        <p className="mb-2 text-[11px] text-neutral-400">
+    <div className="space-y-2 text-[14px]">
+      <Section label="Gmail credentials" hint="Paste your Gmail address and a 16-char app-password (Google Account → Security → 2-Step Verification → App passwords). Enables inbox, send, search tools.">
+        <p className="mb-2 text-[14px] text-neutral-200">
           Use a Google app-password (Account → Security → 2-Step Verification → App passwords).
           Stored locally in OS keychain — never leaves your machine except to smtp.gmail.com / imap.gmail.com.
         </p>
         <label className="block">
-          <span className="text-[10px] text-neutral-500">
+          <span className="text-[14px] text-neutral-300">
             Email {userHas && <span className="text-emerald-400">✓ stored</span>}
           </span>
           <input
@@ -48,11 +48,11 @@ export function MailSection() {
             value={user}
             onChange={(e) => setUser(e.target.value)}
             placeholder="you@gmail.com"
-            className="no-drag mt-0.5 w-full rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag mt-0.5 w-full rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
         </label>
         <label className="mt-2 block">
-          <span className="text-[10px] text-neutral-500">
+          <span className="text-[14px] text-neutral-300">
             App password {passHas && <span className="text-emerald-400">✓ stored</span>}
           </span>
           <input
@@ -60,7 +60,7 @@ export function MailSection() {
             value={pass}
             onChange={(e) => setPass(e.target.value)}
             placeholder="16-char app password"
-            className="no-drag mt-0.5 w-full rounded-md border border-white/10 bg-black/40 p-1.5 focus:border-passio-pulp focus:outline-none"
+            className="no-drag mt-0.5 w-full rounded-md border border-passio-border bg-[#241B30] p-1.5 focus:border-passio-pulp focus:outline-none"
           />
         </label>
         <div className="mt-2 flex gap-2">
@@ -82,7 +82,7 @@ export function MailSection() {
             </button>
           )}
         </div>
-        {status && <p className="mt-2 text-[11px] text-emerald-300">{status}</p>}
+        {status && <p className="mt-2 text-[14px] text-emerald-300">{status}</p>}
       </Section>
     </div>
   );

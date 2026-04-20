@@ -109,6 +109,20 @@ export const RpcMethods = {
   MILESTONE_ADD: "passio.milestone.add",
   MILESTONE_DONE: "passio.milestone.done",
   MILESTONE_RESCHEDULE: "passio.milestone.reschedule",
+  MILESTONE_TO_TODOS: "passio.milestone.toTodos",
+  GOAL_DELETE: "passio.goal.delete",
+  GOAL_CONVERSATIONS: "passio.goal.conversations",
+  RADAR_CHECK: "passio.radar.check",
+  FIRST_RUN_GET: "passio.firstRun.get",
+  FIRST_RUN_MARK: "passio.firstRun.mark",
+  TODO_MD_SYNC: "passio.todoMd.sync",
+  TODO_MD_PATH_GET: "passio.todoMd.getPath",
+  TODO_MD_PATH_SET: "passio.todoMd.setPath",
+  TODOS_TOP_TODAY: "passio.todos.topToday",
+  SYSTEM_SNAPSHOT: "passio.system.snapshot",
+  SYSTEM_STATS: "passio.system.stats",
+  SYSTEM_DISTRACTION_CHECK: "passio.system.distractionCheck",
+  INITIATIVE_PULSE: "passio.initiative.pulse",
   // Analytics
   HABIT_UPSERT: "passio.habit.upsert",
   HABIT_LOG: "passio.habit.log",
@@ -225,6 +239,81 @@ export const RpcMethods = {
   VAULT_WRITE: "passio.vault.write",
   VAULT_LIST_TAGS: "passio.vault.listTags",
   VAULT_DAILY_RECAP: "passio.vault.dailyRecap",
+  VAULT_STATUS: "passio.vault.status",
+  VAULT_DAILY_NOTE_PATH_GET: "passio.vault.dailyNotePathGet",
+  VAULT_DAILY_NOTE_PATH_SET: "passio.vault.dailyNotePathSet",
+
+  // Cost / usage
+  COST_SUMMARY: "passio.cost.summary",
+
+  // Nightly reflection
+  REFLECTION_RUN: "passio.reflection.run",
+  REFLECTION_PENDING: "passio.reflection.pending",
+  REFLECTION_RESOLVE: "passio.reflection.resolve",
+
+  // Unified memory browser
+  MEMORY_BROWSE: "passio.memory.browse",
+  MEMORY_UPDATE: "passio.memory.update",
+  MEMORY_DELETE: "passio.memory.delete",
+
+  // Spotlight + what-next
+  SPOTLIGHT_SEARCH: "passio.spotlight.search",
+  WHAT_NEXT: "passio.whatNext",
+
+  // Undo for autonomous actions
+  AUDIT_LIST: "passio.audit.list",
+  AUDIT_UNDO: "passio.audit.undo",
+
+  // Screenshot-and-ask
+  VISION_ASK: "passio.vision.ask",
+
+  // Todo delete + edit (hud-only shortcuts)
+  TODO_DELETE: "passio.todo.delete",
+  TODO_UPDATE: "passio.todo.update",
+
+  // Sitting / unlock
+  SYSTEM_SITTING: "passio.system.sittingNudge",
+  SYSTEM_UNLOCK_CHECK: "passio.system.unlockCheck",
+
+  // Auto-retrigger loop
+  AUTO_LOOP_START: "passio.autoLoop.start",
+  AUTO_LOOP_CANCEL: "passio.autoLoop.cancel",
+  AUTO_LOOP_LIST: "passio.autoLoop.list",
+  AUTO_LOOP_EVENTS: "passio.autoLoop.events",
+  NOTIFY_AUTO_LOOP_UPDATE: "passio.autoLoop.update",
+
+  // Personality picker
+  PERSONA_TREE: "passio.persona.tree",
+  PERSONA_APPLY_PATH: "passio.persona.applyPath",
+  SETTINGS_GET: "passio.settings.get",
+  SETTINGS_SET: "passio.settings.set",
+  SETTINGS_DELETE: "passio.settings.delete",
+
+  // Seeds (plugins)
+  SEED_LIST: "passio.seed.list",
+  SEED_INSTALL_DESCRIPTOR: "passio.seed.installDescriptor", // accepts .seed JSON
+  SEED_INSTALL_LOCAL: "passio.seed.installLocal", // accepts an absolute folder path (dev/sideload)
+  SEED_ENABLE: "passio.seed.enable",
+  SEED_DISABLE: "passio.seed.disable",
+  SEED_UNINSTALL: "passio.seed.uninstall",
+  SEED_GET_SETTINGS: "passio.seed.getSettings",
+  SEED_SET_SETTINGS: "passio.seed.setSettings",
+  SEED_INVOKE_TOOL: "passio.seed.invokeTool", // host → seed, executes a registered tool
+  SEED_DEV_START: "passio.seed.devStart", // watch a folder, reload on change
+  SEED_DEV_STOP: "passio.seed.devStop",
+  SEED_LOGS: "passio.seed.logs",
+  SEED_PANEL_SRC: "passio.seed.panelSrc", // returns the JS bundle text for a contributed panel
+  SEED_HOTKEY_FIRE: "passio.seed.hotkeyFire", // HUD → sidecar: fan out a hotkey press to subscribed seeds
+  SEED_HOTKEYS_LIST: "passio.seed.hotkeysList", // Rust/HUD query: enabled seeds' declared hotkeys
+  SEED_CHECK_UPDATES: "passio.seed.checkUpdates", // poll remote manifests for newer versions
+  ORCHARD_FETCH: "passio.orchard.fetch", // curated seed index
+  ORCHARD_SET_URL: "passio.orchard.setUrl", // user can point at a different registry
+  DATA_EXPORT: "passio.data.export",
+  DATA_IMPORT: "passio.data.import",
+  COST_BUDGET_GET: "passio.cost.budget.get",
+  COST_BUDGET_SET: "passio.cost.budget.set",
+  COST_BUDGET_CHECK: "passio.cost.budget.check",
+  NOTIFY_SEED_EVENT: "passio.seed.event", // seed lifecycle updates for the HUD
 
   // Sidecar → Rust notifications
   NOTIFY_BUBBLE_STATE: "passio.bubbleState",

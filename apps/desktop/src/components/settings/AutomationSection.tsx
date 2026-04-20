@@ -19,9 +19,9 @@ export function AutomationSection() {
   }
 
   return (
-    <div className="space-y-2 text-xs">
-      <Section label="Scanner autonomous actions">
-        <p className="mb-2 text-[11px] text-neutral-400">
+    <div className="space-y-2 text-[14px]">
+      <Section label="Scanner autonomous actions" hint="When the scanner decides to 'act', should Passio always show the countdown, or silently obey per-host policy?">
+        <p className="mb-2 text-[14px] text-neutral-200">
           When the scanner's proactive loop decides to{" "}
           <span className="text-passio-pulp">act</span>, should Passio always show the countdown
           toast, or obey your per-host policy?
@@ -35,7 +35,7 @@ export function AutomationSection() {
           />
           <span>Always require countdown confirmation (recommended)</span>
         </label>
-        {status && <p className="mt-2 text-[11px] text-emerald-300">{status}</p>}
+        {status && <p className="mt-2 text-[14px] text-emerald-300">{status}</p>}
       </Section>
     </div>
   );
