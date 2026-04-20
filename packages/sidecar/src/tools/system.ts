@@ -32,6 +32,63 @@ const DEFAULT_DISTRACTION = [
   "netflix",
 ];
 
+// Substrings that, when present in the window title, reclassify a would-be
+// "distraction" hit as "work". The idea: being on YouTube doesn't mean
+// you're slacking — coding tutorials, documentation walkthroughs, lofi
+// streams and study music are all productive uses of the same domain.
+// Users can override this list via passio.system.productiveKeywords.set.
+const DEFAULT_PRODUCTIVE_KEYWORDS = [
+  // Learning / reference
+  "tutorial",
+  "how to",
+  "how-to",
+  "course",
+  "lecture",
+  "masterclass",
+  "crash course",
+  "deep dive",
+  "walkthrough",
+  "explained",
+  "documentation",
+  " docs ",
+  "guide",
+  "intro to",
+  "learn ",
+  "study ",
+  "study with me",
+  "ted talk",
+  // Music / ambient — code-to-this territory
+  "music",
+  "playlist",
+  " mix ",
+  "album",
+  "lo-fi",
+  "lofi",
+  "lo fi",
+  "ambient",
+  "focus",
+  "meditation",
+  "radio",
+  "concert",
+  "live stream",
+  "ost",
+  "soundtrack",
+  // Tech-flavoured content that tends to be work-adjacent
+  "coding",
+  "programming",
+  "algorithm",
+  "javascript",
+  "typescript",
+  "python",
+  "rust ",
+  "react",
+  "linux",
+  "kubernetes",
+  "devops",
+  "security",
+  "ctf",
+];
+
 function shell(cmd: string, args: string[]): Promise<{ stdout: string; code: number }> {
   return new Promise((resolve) => {
     const proc = spawn(cmd, args);
@@ -83,10 +140,20 @@ function classify(
   app: string | null,
   title: string | null,
   distractionList: string[],
+  productiveKeywords: string[],
 ): Snapshot["classification"] {
   if (!app && !title) return "idle";
   const haystack = `${app ?? ""} ${title ?? ""}`.toLowerCase();
-  if (distractionList.some((d) => haystack.includes(d))) return "distraction";
+  if (distractionList.some((d) => haystack.includes(d))) {
+    // Escape hatch: a YouTube tab titled "React hooks tutorial" or a
+    // "lofi hip hop radio" stream is the user working, not slacking.
+    // Pad with spaces so "rust " doesn't match "trustpilot" inside titles.
+    const paddedHaystack = ` ${haystack} `;
+    if (productiveKeywords.some((k) => paddedHaystack.includes(k.toLowerCase()))) {
+      return "work";
+    }
+    return "distraction";
+  }
   // Rough work heuristic: known dev / productivity apps.
   if (
     /code|vim|emacs|intellij|jetbrains|passio|terminal|qterminal|bash|zsh|obsidian|cursor|warp/i.test(
@@ -110,9 +177,31 @@ function getDistractionList(db: Db): string[] {
   }
 }
 
+export function getProductiveKeywords(db: Db): string[] {
+  const row = db.$raw
+    .query("SELECT value FROM settings WHERE key = 'productive_keywords'")
+    .get() as { value: string } | undefined;
+  if (!row) return DEFAULT_PRODUCTIVE_KEYWORDS;
+  try {
+    return JSON.parse(row.value) as string[];
+  } catch {
+    return DEFAULT_PRODUCTIVE_KEYWORDS;
+  }
+}
+
+export function setProductiveKeywords(db: Db, keywords: string[]): { ok: true } {
+  const clean = [...new Set(keywords.map((k) => k.trim().toLowerCase()).filter(Boolean))];
+  db.$raw
+    .query(
+      "INSERT INTO settings(key, value) VALUES('productive_keywords', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    )
+    .run(JSON.stringify(clean));
+  return { ok: true };
+}
+
 export async function systemSnapshot(db: Db): Promise<Snapshot> {
   const [procs, { app, title }] = await Promise.all([topProcesses(), activeWindow()]);
-  const cls = classify(app, title, getDistractionList(db));
+  const cls = classify(app, title, getDistractionList(db), getProductiveKeywords(db));
   activityLog(db, {
     ...(app !== null ? { app } : {}),
     ...(title !== null ? { window_title: title } : {}),

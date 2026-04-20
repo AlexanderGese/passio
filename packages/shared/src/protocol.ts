@@ -307,6 +307,10 @@ export const RpcMethods = {
   SEED_HOTKEY_FIRE: "passio.seed.hotkeyFire", // HUD → sidecar: fan out a hotkey press to subscribed seeds
   SEED_HOTKEYS_LIST: "passio.seed.hotkeysList", // Rust/HUD query: enabled seeds' declared hotkeys
   SEED_MAIN_TABS: "passio.seed.mainTabs", // HUD query: enabled seeds' promoteToMainTab panels
+
+  // Activity classifier tunables
+  PRODUCTIVE_KEYWORDS_GET: "passio.system.productiveKeywords.get",
+  PRODUCTIVE_KEYWORDS_SET: "passio.system.productiveKeywords.set",
   SEED_CHECK_UPDATES: "passio.seed.checkUpdates", // poll remote manifests for newer versions
   ORCHARD_FETCH: "passio.orchard.fetch", // curated seed index
   ORCHARD_SET_URL: "passio.orchard.setUrl", // user can point at a different registry

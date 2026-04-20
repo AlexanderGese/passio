@@ -30,7 +30,13 @@ import { dispatchScanProposal } from "./ai/scan_dispatch.js";
 import { deadlineRadar } from "./ai/radar.js";
 import { milestoneToTodos } from "./ai/split.js";
 import { getTodoMdPath, setTodoMdPath, syncTodoMd, todaysTopTodos } from "./tools/todo_sync.js";
-import { activityStats, distractionNudge, systemSnapshot } from "./tools/system.js";
+import {
+  activityStats,
+  distractionNudge,
+  getProductiveKeywords,
+  setProductiveKeywords,
+  systemSnapshot,
+} from "./tools/system.js";
 import { initiativePulse } from "./ai/initiative.js";
 import { getAutomationPrefs, setAutomationPrefs } from "./tools/automation_settings.js";
 import { rewrite, translate } from "./ai/transform.js";
@@ -692,6 +698,13 @@ bus.on(RpcMethods.DISTRACTING_GET, async () => ({ domains: getDistractingDomains
 bus.on(RpcMethods.DISTRACTING_SET, async (params: unknown) => {
   const { domains } = params as { domains: string[] };
   return setDistractingDomains(db, domains);
+});
+bus.on(RpcMethods.PRODUCTIVE_KEYWORDS_GET, async () => ({
+  keywords: getProductiveKeywords(db),
+}));
+bus.on(RpcMethods.PRODUCTIVE_KEYWORDS_SET, async (params: unknown) => {
+  const { keywords } = params as { keywords: string[] };
+  return setProductiveKeywords(db, keywords);
 });
 
 // --- Analytics ---
