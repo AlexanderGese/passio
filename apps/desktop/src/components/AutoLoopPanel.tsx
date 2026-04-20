@@ -8,6 +8,7 @@ export function AutoLoopPanel() {
   const [events, setEvents] = useState<AutoLoopEvent[]>([]);
   const [task, setTask] = useState("");
   const [maxSteps, setMaxSteps] = useState(20);
+  const [unlimitedSteps, setUnlimitedSteps] = useState(false);
   const [maxCost, setMaxCost] = useState(0.5);
   const [busy, setBusy] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -65,7 +66,7 @@ export function AutoLoopPanel() {
     try {
       const r = await autoLoopApi.start({
         task: task.trim(),
-        maxSteps,
+        maxSteps: unlimitedSteps ? 0 : maxSteps,
         maxCostUsd: maxCost,
       });
       setTask("");
@@ -81,6 +82,22 @@ export function AutoLoopPanel() {
   async function cancel(id: number) {
     await autoLoopApi.cancel(id);
     void refresh();
+  }
+
+  async function resume(id: number) {
+    setBusy(true);
+    try {
+      await autoLoopApi.resume({
+        id,
+        maxSteps: unlimitedSteps ? 0 : maxSteps,
+        maxCostUsd: maxCost,
+      });
+      await refresh();
+    } catch (e) {
+      alert(`Continue failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(false);
+    }
   }
 
   const current = loops.find((l) => l.id === selected) ?? null;
@@ -104,11 +121,21 @@ export function AutoLoopPanel() {
             <input
               type="number"
               min={3}
-              max={80}
+              max={999}
               value={maxSteps}
+              disabled={unlimitedSteps}
               onChange={(e) => setMaxSteps(Number(e.target.value))}
-              className="no-drag w-14 rounded bg-[#1A1422] px-1 py-0.5 text-passio-cream"
+              className="no-drag w-14 rounded bg-[#1A1422] px-1 py-0.5 text-passio-cream disabled:opacity-40"
             />
+          </label>
+          <label className="flex items-center gap-1" title="Ignore the step cap; only stop when cost cap or 'complete' is reached.">
+            <input
+              type="checkbox"
+              checked={unlimitedSteps}
+              onChange={(e) => setUnlimitedSteps(e.target.checked)}
+              className="no-drag accent-passio-pulp"
+            />
+            ∞
           </label>
           <label className="flex items-center gap-1">
             max $
@@ -180,7 +207,7 @@ export function AutoLoopPanel() {
                   >
                     {current.status}
                   </span>
-                  {current.status === "running" && (
+                  {current.status === "running" ? (
                     <button
                       type="button"
                       onClick={() => cancel(current.id)}
@@ -188,7 +215,16 @@ export function AutoLoopPanel() {
                     >
                       Cancel
                     </button>
-                  )}
+                  ) : current.status !== "complete" ? (
+                    <button
+                      type="button"
+                      onClick={() => resume(current.id)}
+                      disabled={busy}
+                      className="no-drag ml-auto rounded-md bg-passio-pulp/20 px-2 py-0.5 text-[11px] text-passio-pulpBright hover:bg-passio-pulp/30 disabled:opacity-40"
+                    >
+                      {busy ? "…" : "Continue"}
+                    </button>
+                  ) : null}
                 </div>
                 {current.lastMessage && (
                   <p className="mt-1 text-[12px] italic text-neutral-300">{current.lastMessage}</p>

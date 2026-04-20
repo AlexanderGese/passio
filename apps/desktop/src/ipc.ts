@@ -563,6 +563,8 @@ export const autoLoopApi = {
   start: (input: { task: string; maxSteps?: number; maxCostUsd?: number; goalId?: number }) =>
     sidecarCall<{ id: number }>("passio.autoLoop.start", input),
   cancel: (id: number) => sidecarCall<{ ok: boolean }>("passio.autoLoop.cancel", { id }),
+  resume: (input: { id: number; maxSteps?: number; maxCostUsd?: number }) =>
+    sidecarCall<{ id: number }>("passio.autoLoop.resume", input),
   list: (input: { limit?: number; status?: string } = {}) =>
     sidecarCall<{ loops: AutoLoopRow[] }>("passio.autoLoop.list", input),
   events: (id: number) => sidecarCall<{ events: AutoLoopEvent[] }>("passio.autoLoop.events", { id }),

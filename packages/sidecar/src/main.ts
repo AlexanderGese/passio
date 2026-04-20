@@ -143,6 +143,7 @@ import {
   cancelLoop,
   listLoops,
   loopEvents,
+  resumeAutoLoop,
   markOrphanedLoopsAbandoned,
   startAutoLoop,
 } from "./ai/auto_loop.js";
@@ -896,6 +897,10 @@ bus.on(RpcMethods.AUTO_LOOP_START, async (p: unknown) => {
 bus.on(RpcMethods.AUTO_LOOP_CANCEL, async (p: unknown) => {
   const { id } = p as { id: number };
   return cancelLoop(db, id);
+});
+bus.on(RpcMethods.AUTO_LOOP_RESUME, async (p: unknown) => {
+  const params = p as { id: number; maxSteps?: number; maxCostUsd?: number };
+  return resumeAutoLoop(db, { bridge, bus }, params);
 });
 bus.on(RpcMethods.AUTO_LOOP_LIST, async (p: unknown) => listLoops(db, (p ?? {}) as { limit?: number; status?: string }));
 bus.on(RpcMethods.AUTO_LOOP_EVENTS, async (p: unknown) =>

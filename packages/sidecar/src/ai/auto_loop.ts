@@ -173,6 +173,71 @@ export function loopEvents(
   return { events: rows };
 }
 
+export async function resumeAutoLoop(
+  db: Db,
+  deps: { bridge?: BridgeServer; bus: RpcBus },
+  input: { id: number; maxSteps?: number; maxCostUsd?: number },
+): Promise<{ id: number }> {
+  ensureAutoLoopTables(db);
+  const row = db.$raw
+    .query(
+      "SELECT id, task, status, step_count, replan_count, max_steps, max_cost_usd, goal_id FROM auto_loops WHERE id = ?",
+    )
+    .get(input.id) as
+    | {
+        id: number;
+        task: string;
+        status: string;
+        step_count: number;
+        replan_count: number;
+        max_steps: number;
+        max_cost_usd: number;
+        goal_id: number | null;
+      }
+    | undefined;
+  if (!row) throw new Error(`auto-loop #${input.id} not found`);
+  if (row.status === "running") throw new Error(`auto-loop #${input.id} is already running`);
+  if (row.status === "complete") throw new Error(`auto-loop #${input.id} is already complete`);
+
+  // Replay prior step_done events into the in-memory history.
+  const events = db.$raw
+    .query(
+      "SELECT kind, title, content FROM auto_loop_events WHERE loop_id = ? AND kind = 'step_done' ORDER BY id",
+    )
+    .all(row.id) as Array<{ kind: string; title: string | null; content: string | null }>;
+  const history = events.map((e) => ({
+    title: e.title ?? "",
+    outcome: (e.content ?? "").slice(0, 500),
+  }));
+
+  // Apply optional cap overrides; 0 = unlimited.
+  const maxSteps = input.maxSteps ?? row.max_steps;
+  const maxCost = input.maxCostUsd ?? row.max_cost_usd;
+  db.$raw
+    .query(
+      "UPDATE auto_loops SET status = 'running', finished_at = NULL, last_message = NULL, max_steps = ?, max_cost_usd = ? WHERE id = ?",
+    )
+    .run(maxSteps, maxCost, row.id);
+  logEvent(db, row.id, "resume", "user-resumed", `prior steps: ${row.step_count}, replans: ${row.replan_count}`);
+  notify(deps.bus, row.id, "running", `Resuming: ${row.task}`);
+
+  void runLoop(
+    db,
+    deps,
+    row.id,
+    row.task,
+    maxSteps,
+    maxCost,
+    row.goal_id ?? undefined,
+    { history, stepsDone: row.step_count, replans: row.replan_count },
+  ).catch((err) => {
+    logEvent(db, row.id, "error", "loop-crashed", (err as Error).message);
+    setStatus(db, row.id, "failed", (err as Error).message);
+    notify(deps.bus, row.id, "failed", (err as Error).message);
+  });
+  return { id: row.id };
+}
+
 export async function startAutoLoop(
   db: Db,
   deps: { bridge?: BridgeServer; bus: RpcBus },
@@ -213,23 +278,60 @@ async function runLoop(
   maxSteps: number,
   maxCost: number,
   goalId?: number,
+  resumeFrom?: {
+    history: Array<{ title: string; outcome: string }>;
+    stepsDone: number;
+    replans: number;
+  },
 ): Promise<void> {
   let cancelled = false;
   activeCancellers.set(loopId, { cancel: () => (cancelled = true) });
 
   const openai = openaiClient();
   const plannerModel = process.env.PASSIO_MODEL_STANDARD || "gpt-4.1";
+  // maxSteps === 0 means unlimited — only the cost cap stops the loop.
+  const stepsUnlimited = maxSteps === 0;
 
   try {
-    // ---- Plan phase ----
-    const initialPlan = await plan(openai, plannerModel, db, task, [], goalId);
-    logEvent(db, loopId, "plan", "initial", JSON.stringify(initialPlan.steps));
-    let queue = [...initialPlan.steps];
-    let stepsDone = 0;
-    let replans = 0;
-    const history: Array<{ title: string; outcome: string }> = [];
+    let queue: Array<{ title: string; prompt: string }>;
+    let stepsDone: number;
+    let replans: number;
+    const history: Array<{ title: string; outcome: string }> = resumeFrom?.history ?? [];
 
-    while (queue.length > 0 && stepsDone < maxSteps) {
+    if (resumeFrom) {
+      // Resume: stepsDone/replans track THIS run only. The loop's cumulative
+      // step_count/replan_count in the DB use delta updates so the history
+      // row keeps growing across resumes.
+      stepsDone = 0;
+      replans = 0;
+      const assess = await assess_(openai, plannerModel, db, task, history);
+      logEvent(
+        db,
+        loopId,
+        "assess",
+        assess.complete ? "complete" : "resume plan",
+        JSON.stringify(assess),
+      );
+      if (assess.complete) {
+        setStatus(db, loopId, "complete", assess.reason);
+        notify(deps.bus, loopId, "complete", assess.reason);
+        return;
+      }
+      queue = [...assess.nextSteps];
+      replans += 1;
+      db.$raw.query("UPDATE auto_loops SET replan_count = replan_count + 1 WHERE id = ?").run(loopId);
+      logEvent(db, loopId, "replan", `+${assess.nextSteps.length} steps (resume)`, assess.reason);
+      notify(deps.bus, loopId, "replan", `+${assess.nextSteps.length} steps (resume)`);
+    } else {
+      // ---- Plan phase ----
+      const initialPlan = await plan(openai, plannerModel, db, task, [], goalId);
+      logEvent(db, loopId, "plan", "initial", JSON.stringify(initialPlan.steps));
+      queue = [...initialPlan.steps];
+      stepsDone = 0;
+      replans = 0;
+    }
+
+    while (queue.length > 0 && (stepsUnlimited || stepsDone < maxSteps)) {
       if (cancelled) {
         setStatus(db, loopId, "cancelled", "user cancelled");
         notify(deps.bus, loopId, "cancelled", "user cancelled");
@@ -266,10 +368,11 @@ async function runLoop(
 
       history.push({ title: step.title, outcome: result.text.slice(0, 500) });
       stepsDone += 1;
-      db.$raw.query("UPDATE auto_loops SET step_count = ? WHERE id = ?").run(stepsDone, loopId);
+      db.$raw.query("UPDATE auto_loops SET step_count = step_count + 1 WHERE id = ?").run(loopId);
 
-      // Replan if the queue is empty — assess completion.
-      if (queue.length === 0 && replans < DEFAULT_MAX_REPLANS) {
+      // Replan if the queue is empty — assess completion. When steps are
+      // unlimited we also remove the replan cap; only cost stops us.
+      if (queue.length === 0 && (stepsUnlimited || replans < DEFAULT_MAX_REPLANS)) {
         if (cancelled) break;
         const assess = await assess_(openai, plannerModel, db, task, history);
         logEvent(
@@ -287,7 +390,7 @@ async function runLoop(
         if (assess.nextSteps.length > 0) {
           queue = assess.nextSteps;
           replans += 1;
-          db.$raw.query("UPDATE auto_loops SET replan_count = ? WHERE id = ?").run(replans, loopId);
+          db.$raw.query("UPDATE auto_loops SET replan_count = replan_count + 1 WHERE id = ?").run(loopId);
           logEvent(db, loopId, "replan", `+${assess.nextSteps.length} steps`, assess.reason);
           notify(deps.bus, loopId, "replan", `+${assess.nextSteps.length} steps`);
         }
@@ -301,8 +404,9 @@ async function runLoop(
         setStatus(db, loopId, "complete", final.reason);
         notify(deps.bus, loopId, "complete", final.reason);
       } else {
-        setStatus(db, loopId, "step_cap", `stopped after ${stepsDone} steps: ${final.reason}`);
-        notify(deps.bus, loopId, "step_cap", `stopped after ${stepsDone} steps`);
+        const status = stepsUnlimited ? "cost_cap" : "step_cap";
+        setStatus(db, loopId, status, `stopped after ${stepsDone} steps: ${final.reason}`);
+        notify(deps.bus, loopId, status, `stopped after ${stepsDone} steps`);
       }
     }
   } finally {

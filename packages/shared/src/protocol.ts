@@ -278,6 +278,7 @@ export const RpcMethods = {
   // Auto-retrigger loop
   AUTO_LOOP_START: "passio.autoLoop.start",
   AUTO_LOOP_CANCEL: "passio.autoLoop.cancel",
+  AUTO_LOOP_RESUME: "passio.autoLoop.resume",
   AUTO_LOOP_LIST: "passio.autoLoop.list",
   AUTO_LOOP_EVENTS: "passio.autoLoop.events",
   NOTIFY_AUTO_LOOP_UPDATE: "passio.autoLoop.update",
