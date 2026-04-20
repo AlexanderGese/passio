@@ -23,8 +23,9 @@ fn defaults() -> Vec<Binding> {
             shortcut: Shortcut::new(Some(Modifiers::SUPER), Code::Space),
             name: "quick-chat",
         },
+        // Matches the Windows Copilot key combo (Win+Shift+Space).
         Binding {
-            shortcut: Shortcut::new(Some(Modifiers::SUPER), Code::KeyB),
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::Space),
             name: "toggle-bubble",
         },
         Binding {

@@ -38,8 +38,9 @@ export function setPersona(db: Db, patch: Partial<Persona>): Persona {
 
 /** Keybinds: symbolic name → accelerator string ("Super+Space"). */
 export const DEFAULT_KEYBINDS: Record<string, string> = {
+  // Primary open/toggle — matches the Windows Copilot key combo (Win+Shift+Space).
+  "toggle-bubble": "Super+Shift+Space",
   "quick-chat": "Super+Space",
-  "toggle-bubble": "Super+B",
   "force-scan": "Super+Shift+N",
   ptt: "Super+Alt+Space",
   "rewrite-selection": "Super+Shift+R",
