@@ -92,9 +92,9 @@ Weather · Calendar ticker · Unread-mail pill · Pomodoro ring · What-next (�
 
 | Default | Action |
 |---|---|
-| `Super+B` | Toggle the bubble |
+| `Super+Shift+Space` | Toggle the bubble — the "Copilot key" combo |
 | `Super+Space` | Focus chat |
-| `Super+/` | Spotlight (search across todos / facts / notes / goals / conversations / files / vault) |
+| `Super+Shift+A` | **Spotlight** — Apple-style launcher: apps, files, notes, todos, clipboard, emoji, system actions ([full reference →](docs/spotlight.md)) |
 | `Super+Shift+S` | Screenshot-and-ask (vision) |
 | `Super+Shift+W` | "What should I do next?" (one-tap leverage picker) |
 | `Super+Shift+C` | Clipboard-ask chip |

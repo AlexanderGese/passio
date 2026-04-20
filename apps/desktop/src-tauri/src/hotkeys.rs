@@ -44,8 +44,10 @@ fn defaults() -> Vec<Binding> {
             shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyL),
             name: "translate-selection",
         },
+        // Apple-style cmd-space search. Win+Shift+A matches our "Copilot key"
+        // pattern (Super+Shift+<letter>) so both combos feel of a family.
         Binding {
-            shortcut: Shortcut::new(Some(Modifiers::SUPER), Code::Slash),
+            shortcut: Shortcut::new(Some(Modifiers::SUPER | Modifiers::SHIFT), Code::KeyA),
             name: "spotlight",
         },
         Binding {

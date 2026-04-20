@@ -41,6 +41,8 @@ export const DEFAULT_KEYBINDS: Record<string, string> = {
   // Primary open/toggle — matches the Windows Copilot key combo (Win+Shift+Space).
   "toggle-bubble": "Super+Shift+Space",
   "quick-chat": "Super+Space",
+  // Apple-style cmd-space search: open the global spotlight.
+  spotlight: "Super+Shift+A",
   "force-scan": "Super+Shift+N",
   ptt: "Super+Alt+Space",
   "rewrite-selection": "Super+Shift+R",

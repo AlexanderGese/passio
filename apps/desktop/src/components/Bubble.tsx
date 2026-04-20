@@ -156,11 +156,14 @@ export function Bubble() {
     expanded ||
     speech !== null ||
     nudge !== null ||
-    clipboardChip !== null ||
-    spotlightOpen;
+    clipboardChip !== null;
   useEffect(() => {
+    // Spotlight owns the window geometry while it's open (centered 760×520 via
+    // `set_spotlight_window`); don't also fire the corner-dock logic, or the
+    // two fight and the bubble snaps back to bottom-right.
+    if (spotlightOpen) return;
     invoke("set_bubble_expanded", { expanded: needsSpace }).catch(() => undefined);
-  }, [needsSpace]);
+  }, [needsSpace, spotlightOpen]);
 
   // Re-reconcile seed hotkeys whenever the seed set changes.
   useEffect(() => {
@@ -311,9 +314,15 @@ export function Bubble() {
 
   const recentErrors = errors.filter((e) => Date.now() - e.ts < 10 * 60_000).length;
 
+  // When the Apple-style launcher is open, everything else should disappear
+  // — the whole window is now the Spotlight card. `spotlightOpen` is a single
+  // boolean in the store so this stays trivially correct.
+  if (spotlightOpen) {
+    return <Spotlight />;
+  }
+
   return (
     <>
-      <Spotlight />
       <ClipboardChip
         onAsk={(text) => {
           setTab("chat");

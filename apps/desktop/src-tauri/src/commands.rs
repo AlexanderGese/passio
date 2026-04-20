@@ -365,6 +365,78 @@ pub async fn set_bubble_expanded(
     crate::resize_bubble_window(&app, expanded).map_err(|e| e.to_string())
 }
 
+// ---- Spotlight window mode (centered launcher) ----
+#[tauri::command]
+pub async fn set_spotlight_window(
+    app: tauri::AppHandle,
+    open: bool,
+    bubble_expanded: bool,
+) -> Result<(), String> {
+    if open {
+        crate::open_spotlight_window(&app).map_err(|e| e.to_string())
+    } else {
+        // Restore the bubble to whatever size the HUD had before spotlight.
+        crate::resize_bubble_window(&app, bubble_expanded).map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+pub async fn resize_spotlight(app: tauri::AppHandle, height: f64) -> Result<(), String> {
+    crate::resize_spotlight_height(&app, height).map_err(|e| e.to_string())
+}
+
+// ---- Clipboard history + paste ----
+#[tauri::command]
+pub fn clipboard_history_list() -> Vec<String> {
+    crate::clipboard_history::history()
+}
+
+#[tauri::command]
+pub async fn clipboard_paste(text: String) -> Result<(), String> {
+    crate::clipboard_history::paste_text(&text).map_err(|e| e.to_string())
+}
+
+// ---- System actions (Spotlight) ----
+#[tauri::command]
+pub async fn run_system_action(id: String) -> Result<(), String> {
+    // Conservative set — no shutdown/logout, to keep the spotlight from being
+    // a one-keystroke way to lose work.
+    let (bin, args): (&str, Vec<String>) = match id.as_str() {
+        "lock" => ("xdg-screensaver", vec!["lock".into()]),
+        "suspend" => ("systemctl", vec!["suspend".into()]),
+        "brightness-up" => ("brightnessctl", vec!["s".into(), "+10%".into()]),
+        "brightness-down" => ("brightnessctl", vec!["s".into(), "10%-".into()]),
+        _ => return Err(format!("unknown system action: {id}")),
+    };
+    std::process::Command::new(bin)
+        .args(&args)
+        .spawn()
+        .map_err(|e| format!("{bin}: {e}"))?;
+    Ok(())
+}
+
+// ---- Launch a Desktop Entry Exec line (Spotlight) ----
+#[tauri::command]
+pub async fn launch_app_exec(exec: String) -> Result<(), String> {
+    // Strip Desktop Entry field codes (%f, %F, %u, %U, %i, %c, %k) per spec.
+    let cleaned: Vec<&str> = exec
+        .split_whitespace()
+        .filter(|tok| !matches!(*tok, "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
+        .collect();
+    if cleaned.is_empty() {
+        return Err("empty Exec".into());
+    }
+    // Double-fork via setsid so the child outlives Passio and doesn't inherit
+    // our stdio. We go through sh -c so quoted arguments in Exec are honored.
+    let line = cleaned.join(" ");
+    std::process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("setsid nohup {} >/dev/null 2>&1 &", line))
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // ---- First-run helpers ----
 #[tauri::command]
 pub async fn first_run_done(sidecar: State<'_, Sidecar>) -> Result<bool, String> {

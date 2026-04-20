@@ -536,6 +536,11 @@ export const mailApi = {
     }>("passio.mail.unread", { limit }),
 };
 
+export const noteApi = {
+  save: (input: { title?: string; body: string; tags?: string }) =>
+    sidecarCall<{ id: number }>("passio.note.save", input),
+};
+
 // --- Auto retrigger loop ---
 
 export type AutoLoopRow = {

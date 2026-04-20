@@ -8,6 +8,7 @@
 //!
 //! All AI / memory / tool logic lives in the sidecar, never here.
 
+mod clipboard_history;
 mod commands;
 mod gate;
 mod hotkeys;
@@ -93,6 +94,9 @@ pub fn run() {
             if let Err(e) = hotkeys::register_defaults(&handle) {
                 tracing::warn!(error=%e, "hotkey registration failed");
             }
+
+            // Background poller for the Spotlight clipboard-history source.
+            clipboard_history::start_poller();
 
             // Hotkey dispatch: force-scan + rewrite-selection + translate-selection
             let force_handle = handle.clone();
@@ -197,6 +201,12 @@ pub fn run() {
             commands::first_run_done,
             commands::register_seed_hotkeys,
             commands::set_bubble_expanded,
+            commands::set_spotlight_window,
+            commands::resize_spotlight,
+            commands::launch_app_exec,
+            commands::clipboard_history_list,
+            commands::clipboard_paste,
+            commands::run_system_action,
             commands::policy_get,
             commands::policy_set,
             commands::policy_delete,
@@ -284,6 +294,56 @@ fn dock_bubble(app: &AppHandle) -> tauri::Result<()> {
     // Boot state is collapsed — so the desktop is clickable everywhere
     // except the avatar corner until the user expands.
     resize_bubble_window(app, false)
+}
+
+/// Resize + center the bubble window in "spotlight mode" — a ~760×520
+/// floating app-launcher card in the middle of the primary monitor. Used
+/// when the user triggers Super+Shift+A. `close_spotlight_window` (via
+/// `resize_bubble_window`) restores the prior collapsed/expanded layout.
+pub const SPOTLIGHT_W: f64 = 760.0;
+pub const SPOTLIGHT_H_COMPACT: f64 = 76.0;
+pub const SPOTLIGHT_H_MAX: f64 = 520.0;
+
+pub fn open_spotlight_window(app: &AppHandle) -> tauri::Result<()> {
+    let Some(window) = app.get_webview_window("bubble") else {
+        return Ok(());
+    };
+    let monitor = window
+        .current_monitor()?
+        .ok_or(tauri::Error::WindowNotFound)?;
+    let monitor_size = monitor.size();
+    let scale = monitor.scale_factor();
+    let mon_w = monitor_size.width as f64 / scale;
+    let mon_h = monitor_size.height as f64 / scale;
+
+    // Anchor the TOP edge of the window at the same vertical position the
+    // expanded card would have been centered at — this way when results
+    // stream in and the window grows downward, the search bar stays where
+    // the user first saw it instead of re-centering on every keystroke.
+    let w = SPOTLIGHT_W;
+    let h = SPOTLIGHT_H_COMPACT;
+    let x = ((mon_w - w) / 2.0).max(0.0);
+    let y = ((mon_h - SPOTLIGHT_H_MAX) / 2.0).max(0.0);
+    tracing::info!(x, y, w, h, mon_w, mon_h, scale, "spotlight: opening compact");
+
+    window.set_position(LogicalPosition::new(x, y))?;
+    window.set_size(tauri::LogicalSize::new(w, h))?;
+    window.set_always_on_top(true)?;
+    let _ = window.show();
+    let _ = window.set_focus();
+    window.set_position(LogicalPosition::new(x, y))?;
+    Ok(())
+}
+
+/// Grow/shrink the spotlight window to match its current content. Height is
+/// clamped to [compact, max]; x/y stay fixed so the search bar doesn't jump.
+pub fn resize_spotlight_height(app: &AppHandle, height: f64) -> tauri::Result<()> {
+    let Some(window) = app.get_webview_window("bubble") else {
+        return Ok(());
+    };
+    let h = height.clamp(SPOTLIGHT_H_COMPACT, SPOTLIGHT_H_MAX);
+    window.set_size(tauri::LogicalSize::new(SPOTLIGHT_W, h))?;
+    Ok(())
 }
 
 /// Resize + reposition the bubble window to match its current collapsed/
