@@ -278,6 +278,23 @@ bun run --cwd packages/sidecar test     # Sidecar tests
 cd apps/desktop/src-tauri && cargo check
 ```
 
+### Ship a build
+
+`scripts/push.sh` is the one-liner for "rebuild everything, commit, push, optionally tag a release". Wraps the whole pipeline so you never forget a step.
+
+```bash
+bun run push                            # rebuild → commit (if dirty) → push main → relaunch
+bun run push "fix: chat panel padding"  # same, with an explicit commit message
+bun run release v2.3.1                  # also bumps package.json + tauri.conf.json
+                                        # versions, tags v2.3.1, pushes the tag →
+                                        # .github/workflows/release.yml builds the
+                                        # .deb and attaches it to the GitHub Release
+bun run push --skip-build               # already built elsewhere; just commit + push
+bun run push --dry-run                  # print every step without touching anything
+```
+
+The release workflow pulls notes from `.github/releases/<tag>.md` (or `<minor>.md`) automatically, so write those before tagging.
+
 ## Tech stack
 
 | Layer | What |

@@ -17,7 +17,9 @@
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun test",
     "format": "bunx biome format --write .",
-    "check": "bunx biome check --write ."
+    "check": "bunx biome check --write .",
+    "push": "bash scripts/push.sh",
+    "release": "bash scripts/push.sh --release"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
