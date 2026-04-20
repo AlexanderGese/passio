@@ -99,6 +99,17 @@ export async function chat(
     convId = conv.id;
   }
 
+  // Pull this conversation's prior turns BEFORE inserting the new user
+  // message, so `history` doesn't duplicate what we pass as the latest user
+  // prompt below. Cap at 20 most-recent turns (40 messages) to keep the
+  // context window healthy; trim oldest first.
+  const priorRows = db.$raw
+    .query(
+      "SELECT role, content FROM messages WHERE conversation_id = ? AND role IN ('user','assistant') ORDER BY id DESC LIMIT 40",
+    )
+    .all(convId) as Array<{ role: "user" | "assistant"; content: string }>;
+  const history = priorRows.reverse();
+
   await db.insert(messages).values({
     conversationId: convId,
     role: "user",
@@ -190,7 +201,9 @@ export async function chat(
     const stream = streamText({
       model: openai()(modelName()),
       system: `${sysPrompt}\n\n${contextBlock}`,
-      prompt: input.prompt,
+      // Pass full conversation history so the model remembers earlier turns.
+      // `messages` takes precedence over `prompt` when both would be valid.
+      messages: [...history, { role: "user" as const, content: input.prompt }],
       tools,
       stopWhen: stepCountIs(6),
     });
