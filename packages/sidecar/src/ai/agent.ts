@@ -476,7 +476,11 @@ function buildSeedTools(): Record<string, ReturnType<typeof tool>> {
         description: t.description
           ? `[Seed ${t.seed}] ${t.description}`
           : `Tool '${t.name}' from seed '${t.seed}'.`,
-        inputSchema: z.record(z.string(), z.unknown()),
+        // OpenAI's Responses API rejects tool schemas without a `properties`
+        // field. `z.record` produces `{type:"object", additionalProperties}`
+        // with no properties → 400. `z.object({}).passthrough()` emits
+        // `{type:"object", properties:{}}` which is accepted.
+        inputSchema: z.object({}).passthrough(),
         execute: async (args: unknown) => invokeToolOnSeed(t.seed, t.name, args),
       });
     }
