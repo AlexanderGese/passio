@@ -10,24 +10,19 @@
 
 mod clipboard_history;
 mod commands;
-mod gate;
 mod hotkeys;
 mod keychain;
 mod logs;
 mod paths;
-mod scheduler;
-mod selection;
 mod sidecar;
 
 use std::sync::Arc;
 
-use serde_json::json;
-use gate::GateState;
 use sidecar::{Sidecar, SidecarEvent};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, Listener, LogicalPosition, Manager,
+    AppHandle, Emitter, LogicalPosition, Manager,
 };
 
 pub fn run() {
@@ -47,49 +42,13 @@ pub fn run() {
         .setup(move |app| {
             let handle = app.handle().clone();
 
-            let gate_state = GateState::new();
-            app.manage(gate_state.clone());
-
             let emit_handle = handle.clone();
-            let gate_for_sink = gate_state.clone();
-            // Sidecar is constructed after sink; we share it via Arc<Mutex<Option<Sidecar>>>
-            // pattern — but simpler: build sink first that only handles log/bubble/crash
-            // + Gate handled via listen('passio://sidecar-gate-request') below.
             let event_sink: sidecar::EventSink = Arc::new(move |evt: SidecarEvent| {
-                forward_event(&emit_handle, &gate_for_sink, evt);
+                forward_event(&emit_handle, evt);
             });
 
             let sidecar = Sidecar::new(sidecar_bin.clone(), event_sink);
             app.manage(sidecar.clone());
-            // Now that sidecar exists, handle deferred gate requests.
-            let gate_router = gate_state.clone();
-            let handle_router = handle.clone();
-            let sidecar_router = sidecar.clone();
-            handle.listen("passio://sidecar-gate-request", move |ev| {
-                let params: serde_json::Value =
-                    serde_json::from_str(ev.payload()).unwrap_or(serde_json::Value::Null);
-                let sc = sidecar_router.clone();
-                let h = handle_router.clone();
-                let g = gate_router.clone();
-                tauri::async_runtime::spawn(async move {
-                    // Look up countdown seconds from sidecar settings.
-                    let secs = match sc
-                        .call("passio.policy.get", serde_json::json!({}))
-                        .await
-                    {
-                        Ok(v) => v
-                            .get("countdownSeconds")
-                            .and_then(|n| n.as_u64())
-                            .unwrap_or(3) as u32,
-                        Err(_) => 3,
-                    };
-                    g.begin(h, sc, params, secs);
-                });
-            });
-
-            let scheduler = scheduler::Scheduler::new(sidecar.clone(), 10);
-            scheduler.spawn();
-            app.manage(scheduler);
 
             if let Err(e) = hotkeys::register_defaults(&handle) {
                 tracing::warn!(error=%e, "hotkey registration failed");
@@ -97,36 +56,6 @@ pub fn run() {
 
             // Background poller for the Spotlight clipboard-history source.
             clipboard_history::start_poller();
-
-            // Hotkey dispatch: force-scan + rewrite-selection + translate-selection
-            let force_handle = handle.clone();
-            let force_sidecar = sidecar.clone();
-            let _ = handle.listen("passio://hotkey", move |e| {
-                let name = strip_quotes(e.payload());
-                let h = force_handle.clone();
-                let s = force_sidecar.clone();
-                match name.as_str() {
-                    "force-scan" => {
-                        tauri::async_runtime::spawn(async move {
-                            match s.call("passio.scan", json!({ "reason": "force" })).await {
-                                Ok(v) => { let _ = h.emit("passio://scan-result", v); }
-                                Err(err) => tracing::warn!(error=%err, "force scan failed"),
-                            }
-                        });
-                    }
-                    "rewrite-selection" => {
-                        tauri::async_runtime::spawn(async move {
-                            run_selection_transform(&h, &s, "rewrite").await;
-                        });
-                    }
-                    "translate-selection" => {
-                        tauri::async_runtime::spawn(async move {
-                            run_selection_transform(&h, &s, "translate").await;
-                        });
-                    }
-                    _ => {}
-                }
-            });
 
             if let Err(e) = build_tray(&handle) {
                 tracing::warn!(error=%e, "tray setup failed");
@@ -136,70 +65,11 @@ pub fn run() {
                 tracing::warn!(error=%e, "bubble dock failed");
             }
 
-            // If launched with a .seed file path in argv (file-association
-            // double-click on Linux/Win), forward it to the sidecar for
-            // installation after a short delay to let the sidecar finish boot.
-            let seed_args: Vec<String> = std::env::args()
-                .skip(1)
-                .filter(|a| a.to_lowercase().ends_with(".seed"))
-                .collect();
-            if !seed_args.is_empty() {
-                let sc = sidecar.clone();
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
-                    for path in seed_args {
-                        match std::fs::read_to_string(&path) {
-                            Ok(body) => match serde_json::from_str::<serde_json::Value>(&body) {
-                                Ok(desc) => {
-                                    if let Err(e) = sc
-                                        .call("passio.seed.installDescriptor", desc)
-                                        .await
-                                    {
-                                        tracing::warn!(error=%e, "seed install failed");
-                                    }
-                                }
-                                Err(e) => tracing::warn!(error=%e, "seed file parse failed"),
-                            },
-                            Err(e) => tracing::warn!(error=%e, "seed file read failed"),
-                        }
-                    }
-                });
-            }
-
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::ping_sidecar,
-            commands::request_scan,
             commands::shutdown_sidecar,
-            commands::chat,
-            commands::todo_list,
-            commands::memory_search,
-            commands::goal_list,
-            commands::goal_create,
-            commands::milestone_done,
-            commands::bridge_status,
-            commands::summarize_page,
-            commands::focus_state,
-            commands::focus_start,
-            commands::focus_stop,
-            commands::pack_get,
-            commands::pack_set,
-            commands::pack_cycle,
-            commands::dnd_get,
-            commands::dnd_toggle,
-            commands::dnd_set,
-            commands::proactive_get,
-            commands::proactive_set,
-            commands::morning_briefing,
-            commands::daily_recap,
-            commands::voice_transcribe,
-            commands::voice_synthesize,
-            commands::keychain_set,
-            commands::keychain_has,
-            commands::keychain_delete,
-            commands::first_run_done,
-            commands::register_seed_hotkeys,
             commands::set_bubble_expanded,
             commands::set_spotlight_window,
             commands::resize_spotlight,
@@ -207,12 +77,9 @@ pub fn run() {
             commands::clipboard_history_list,
             commands::clipboard_paste,
             commands::run_system_action,
-            commands::policy_get,
-            commands::policy_set,
-            commands::policy_delete,
-            commands::policy_set_countdown,
-            commands::blocklist_set,
-            commands::gate_resolve,
+            commands::keychain_set,
+            commands::keychain_has,
+            commands::keychain_delete,
             commands::persona_get,
             commands::persona_set,
             commands::keybinds_get,
@@ -229,25 +96,23 @@ pub fn run() {
         .expect("tauri run");
 }
 
-fn forward_event(handle: &AppHandle, _gate: &GateState, evt: SidecarEvent) {
+fn forward_event(handle: &AppHandle, evt: SidecarEvent) {
     let (topic, payload) = match evt {
         SidecarEvent::Log { level, message } => (
             "passio://sidecar-log",
-            json!({ "level": level, "message": message }),
+            serde_json::json!({ "level": level, "message": message }),
         ),
         SidecarEvent::BubbleState(v) => ("passio://bubble-state", v),
         SidecarEvent::Crash { reason } => (
             "passio://sidecar-crash",
-            json!({ "reason": reason }),
+            serde_json::json!({ "reason": reason }),
         ),
         SidecarEvent::SpawnFailed { reason } => (
             "passio://sidecar-spawn-failed",
-            json!({ "reason": reason }),
+            serde_json::json!({ "reason": reason }),
         ),
-        SidecarEvent::GateRequest(v) => ("passio://sidecar-gate-request", v),
         SidecarEvent::ChatChunk(v) => ("passio://chat-chunk", v),
-        SidecarEvent::AutoLoopUpdate(v) => ("passio://autoloop-update", v),
-        SidecarEvent::SeedEvent(v) => ("passio://seed-event", v),
+        SidecarEvent::AutoLoopUpdate(v) => ("passio://auto-loop-update", v),
     };
     let _ = handle.emit(topic, payload);
 }
@@ -376,54 +241,6 @@ pub fn resize_bubble_window(app: &AppHandle, expanded: bool) -> tauri::Result<()
     // focus/show pair — nudge it so the collapsed avatar is always visible.
     let _ = window.show();
     Ok(())
-}
-
-/// Remove surrounding JSON quotes from a hotkey payload ("force-scan" → force-scan).
-fn strip_quotes(raw: &str) -> String {
-    let trimmed = raw.trim();
-    if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
-        return trimmed[1..trimmed.len() - 1].to_string();
-    }
-    trimmed.to_string()
-}
-
-async fn run_selection_transform(handle: &AppHandle, sidecar: &Sidecar, kind: &str) {
-    let selection_text = match selection::get_primary().await {
-        Ok(s) => s,
-        Err(e) => {
-            let _ = handle.emit(
-                "passio://selection-result",
-                json!({ "kind": kind, "ok": false, "error": e.to_string() }),
-            );
-            return;
-        }
-    };
-    let (method, params) = match kind {
-        "rewrite" => ("passio.rewrite", json!({ "text": selection_text, "style": "clearer" })),
-        "translate" => (
-            "passio.translate",
-            json!({ "text": selection_text, "target_language": "English" }),
-        ),
-        _ => return,
-    };
-    match sidecar.call(method, params).await {
-        Ok(v) => {
-            let text = v.get("text").and_then(|x| x.as_str()).unwrap_or("").to_string();
-            if !text.is_empty() {
-                let _ = selection::set_clipboard(&text).await;
-            }
-            let _ = handle.emit(
-                "passio://selection-result",
-                json!({ "kind": kind, "ok": true, "text": text }),
-            );
-        }
-        Err(e) => {
-            let _ = handle.emit(
-                "passio://selection-result",
-                json!({ "kind": kind, "ok": false, "error": e.to_string() }),
-            );
-        }
-    }
 }
 
 /// Locate the Bun sidecar binary. In release builds it lives in the bundle's

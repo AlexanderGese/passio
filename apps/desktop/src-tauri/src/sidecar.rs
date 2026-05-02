@@ -59,10 +59,8 @@ pub enum SidecarEvent {
     BubbleState(Value),
     Crash { reason: String },
     SpawnFailed { reason: String },
-    GateRequest(Value),
     ChatChunk(Value),
     AutoLoopUpdate(Value),
-    SeedEvent(Value),
 }
 
 pub type EventSink = Arc<dyn Fn(SidecarEvent) + Send + Sync>;
@@ -368,11 +366,6 @@ fn dispatch_notification(notif: RpcNotification, events: &EventSink) {
                 events(SidecarEvent::BubbleState(params));
             }
         }
-        "passio.gate.request" => {
-            if let Some(params) = notif.params {
-                events(SidecarEvent::GateRequest(params));
-            }
-        }
         "passio.chat.chunk" => {
             if let Some(params) = notif.params {
                 events(SidecarEvent::ChatChunk(params));
@@ -381,11 +374,6 @@ fn dispatch_notification(notif: RpcNotification, events: &EventSink) {
         "passio.autoLoop.update" => {
             if let Some(params) = notif.params {
                 events(SidecarEvent::AutoLoopUpdate(params));
-            }
-        }
-        "passio.seed.event" => {
-            if let Some(params) = notif.params {
-                events(SidecarEvent::SeedEvent(params));
             }
         }
         other => {

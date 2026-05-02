@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Passio",
-  "version": "2.3.0",
+  "version": "3.0.0",
   "identifier": "com.passio.desktop",
   "build": {
     "frontendDist": "../dist",
@@ -50,15 +50,6 @@
       "icons/icon.png"
     ],
     "resources": ["resources/*"],
-    "fileAssociations": [
-      {
-        "ext": ["seed"],
-        "name": "Passio Seed",
-        "description": "A Passio plugin descriptor",
-        "mimeType": "application/x-passio-seed",
-        "role": "Editor"
-      }
-    ],
     "linux": {
       "deb": {
         "depends": [
